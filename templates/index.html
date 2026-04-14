@@ -6,25 +6,30 @@
   <title>Wildlife Track Classifier</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
-    /* ── Reset ────────────────────────────────────────────── */
+    /* ── Custom property for conic-gradient rotation ─────── */
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:         #080C08;
-      --surface:    rgba(255,255,255,0.04);
-      --border:     rgba(255,255,255,0.08);
-      --border-hi:  rgba(74,222,128,0.4);
-      --text:       #F0FDF4;
-      --text-sec:   #86EFAC;
-      --muted:      #4B5563;
-      --green:      #4ADE80;
+      --bg:         #050A05;
+      --surface:    rgba(12, 20, 12, 0.85);
+      --text:       #F5F0E8;
+      --text-sec:   #8A9E8A;
+      --muted:      #4A5A4A;
+      --accent:     #7CBA6E;
+      --accent-em:  #A8C5A0;
+      --border:     rgba(124, 186, 110, 0.15);
+      --error:      #C4614A;
       --teal:       #2DD4BF;
-      --red:        #F87171;
-      --amber:      #FCD34D;
-      --glass-blur: blur(20px);
     }
 
     html { scroll-behavior: smooth; }
@@ -32,228 +37,242 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
       line-height: 1.6;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* ── Aurora background ────────────────────────────────── */
+    /* ── Animations ───────────────────────────────────────── */
+    @keyframes fadeRise {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim-1 { animation: fadeRise 0.9s ease-out 0.1s  both; }
+    .anim-2 { animation: fadeRise 0.9s ease-out 0.25s both; }
+    .anim-3 { animation: fadeRise 0.9s ease-out 0.4s  both; }
+    .anim-4 { animation: fadeRise 0.9s ease-out 0.55s both; }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50%       { opacity: 0.7; transform: scale(1.08); }
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+
+    @keyframes dotSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Aurora background ─────────────────────────────────── */
     .aurora {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      overflow: hidden;
     }
     .aurora-blob {
       position: absolute;
       border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.12;
+      filter: blur(80px);
     }
     .aurora-blob:nth-child(1) {
       width: 600px; height: 600px;
-      background: radial-gradient(circle, #4ADE80, transparent 70%);
-      top: -200px; left: -100px;
-      animation: drift1 18s ease-in-out infinite alternate;
+      top: 10%; left: 15%;
+      background: radial-gradient(circle, rgba(60,100,50,0.18) 0%, transparent 70%);
+      animation: pulseGlow 8s ease-in-out infinite;
     }
     .aurora-blob:nth-child(2) {
       width: 500px; height: 500px;
-      background: radial-gradient(circle, #2DD4BF, transparent 70%);
-      bottom: -100px; right: -100px;
-      animation: drift2 22s ease-in-out infinite alternate;
+      top: 40%; right: 10%;
+      background: radial-gradient(circle, rgba(40,80,60,0.14) 0%, transparent 70%);
+      animation: pulseGlow 11s ease-in-out 3s infinite;
     }
     .aurora-blob:nth-child(3) {
       width: 400px; height: 400px;
-      background: radial-gradient(circle, #4ADE80, transparent 70%);
-      top: 40%; left: 55%;
-      animation: drift3 28s ease-in-out infinite alternate;
-      opacity: 0.07;
+      bottom: 15%; left: 40%;
+      background: radial-gradient(circle, rgba(80,120,60,0.12) 0%, transparent 70%);
+      animation: pulseGlow 9s ease-in-out 6s infinite;
     }
-    @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,80px) scale(1.1); } }
-    @keyframes drift2 { from { transform: translate(0,0) scale(1.05); } to { transform: translate(-80px,-40px) scale(0.95); } }
-    @keyframes drift3 { from { transform: translate(0,0); } to { transform: translate(-60px,60px) scale(1.15); } }
 
-    /* ── Layout ───────────────────────────────────────────── */
-    .container {
+    /* ── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; width: 100%;
+      z-index: 100;
+      background: rgba(5,10,5,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(124,186,110,0.1);
+      padding: 18px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo-icon {
+      font-size: 1.3rem;
+      filter: drop-shadow(0 0 6px rgba(124,186,110,0.5));
+    }
+    .nav-logo-text {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .nav-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border: 1px solid rgba(124,186,110,0.25);
+      border-radius: 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-sec);
+    }
+    .nav-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulseGlow 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Layout wrapper ───────────────────────────────────── */
+    .wrap {
       position: relative;
       z-index: 1;
-      max-width: 900px;
+      max-width: 760px;
       margin: 0 auto;
       padding: 0 24px;
     }
 
-    /* ── Page-load animations ─────────────────────────────── */
-    .fade-up {
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-    }
-    @keyframes fadeUp {
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .delay-3 { animation-delay: 0.3s; }
-    .delay-4 { animation-delay: 0.4s; }
-    .delay-5 { animation-delay: 0.5s; }
-
-    /* ── Header ───────────────────────────────────────────── */
-    header {
-      position: relative;
-      z-index: 1;
-      padding: 28px 0 0;
-    }
-    .header-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .logo-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .logo-icon {
-      font-size: 1.8rem;
-      animation: glow-pulse 3s ease-in-out infinite;
-      filter: drop-shadow(0 0 8px rgba(74,222,128,0.5));
-    }
-    @keyframes glow-pulse {
-      0%, 100% { filter: drop-shadow(0 0 8px rgba(74,222,128,0.4)); }
-      50%       { filter: drop-shadow(0 0 18px rgba(74,222,128,0.8)); }
-    }
-    .site-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.02em;
-    }
-    .gemini-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      background: linear-gradient(var(--bg), var(--bg)) padding-box,
-                  linear-gradient(90deg, var(--green), var(--teal)) border-box;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--teal);
-      letter-spacing: 0.05em;
-      animation: badge-shimmer 4s ease-in-out infinite;
-    }
-    @keyframes badge-shimmer {
-      0%, 100% { box-shadow: 0 0 0 rgba(45,212,191,0); }
-      50%       { box-shadow: 0 0 12px rgba(45,212,191,0.25); }
-    }
-    .header-line {
-      height: 1px;
-      background: linear-gradient(90deg, var(--green), var(--teal), transparent);
-      margin-top: 20px;
-      opacity: 0.35;
-    }
-
-    /* ── Hero ─────────────────────────────────────────────── */
+    /* ── HERO ─────────────────────────────────────────────── */
     .hero {
-      padding: 64px 0 48px;
+      padding-top: 140px;
+      padding-bottom: 80px;
       text-align: center;
     }
+    .hero-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
     .hero-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(2.4rem, 6vw, 3.5rem);
-      line-height: 1.1;
-      letter-spacing: -0.02em;
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(52px, 7vw, 96px);
+      font-weight: 400;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
       color: var(--text);
-      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto 28px;
     }
-    .hero-title .word {
-      display: inline-block;
-      clip-path: inset(0 100% 0 0);
-      animation: revealWord 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
-      margin-right: 0.22em;
-    }
-    .hero-title .word:nth-child(1) { animation-delay: 0.15s; }
-    .hero-title .word:nth-child(2) { animation-delay: 0.3s; }
-    @keyframes revealWord {
-      to { clip-path: inset(0 0% 0 0); }
+    .hero-title em {
+      color: var(--accent-em);
+      font-style: italic;
     }
     .hero-sub {
-      margin-top: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 17px;
       color: var(--text-sec);
-      font-size: 1.05rem;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+      max-width: 520px;
+      margin: 0 auto 52px;
+      line-height: 1.65;
     }
 
-    /* Stats */
+    /* Stats row */
     .stats-row {
       display: flex;
+      gap: 0;
       justify-content: center;
-      gap: 36px;
-      flex-wrap: wrap;
-      margin-top: 40px;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.65s cubic-bezier(0.16,1,0.3,1) forwards;
+      max-width: 500px;
+      margin: 0 auto 64px;
+      border: 1px solid rgba(124,186,110,0.12);
+      border-radius: 12px;
+      background: rgba(12,20,12,0.6);
+      backdrop-filter: blur(8px);
+      overflow: hidden;
     }
-    .stat-item { text-align: center; }
-    .stat-number {
+    .stat-item {
+      flex: 1;
+      padding: 24px 36px;
+      border-right: 1px solid rgba(124,186,110,0.1);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
       font-family: 'DM Mono', monospace;
-      font-size: 2rem;
-      font-weight: 500;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: 32px;
+      color: var(--text);
       line-height: 1;
     }
     .stat-label {
-      font-size: 0.78rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
       color: var(--muted);
-      margin-top: 4px;
-      letter-spacing: 0.04em;
       text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
     }
 
-    /* ── Glass card ───────────────────────────────────────── */
+    /* ── Card base ────────────────────────────────────────── */
     .card {
+      max-width: 720px;
+      margin: 0 auto 24px;
       background: var(--surface);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 28px;
-      margin-top: 20px;
-      position: relative;
-      z-index: 1;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(124,186,110,0.05),
+        0 24px 64px rgba(0,0,0,0.4);
+    }
+    .card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(124,186,110,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .card-label {
       font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--green);
-      margin-bottom: 20px;
+    }
+    .card-label-right {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
     }
 
     /* ── Drop zone ────────────────────────────────────────── */
+    .drop-wrap { margin: 20px; }
     #drop-zone {
-      position: relative;
+      border: 1px dashed rgba(124,186,110,0.2);
       border-radius: 12px;
-      padding: 40px 24px;
+      padding: 48px 24px;
       text-align: center;
       cursor: pointer;
-      border: 1px solid var(--border);
-      background: rgba(0,0,0,0.2);
-      transition: background 0.2s;
+      transition: all 0.2s;
+      background: rgba(5,10,5,0.5);
+      position: relative;
       overflow: hidden;
     }
-    #drop-zone:hover { background: rgba(74,222,128,0.04); }
     #drop-zone input[type="file"] {
       position: absolute;
       inset: 0;
@@ -262,460 +281,508 @@
       width: 100%;
       height: 100%;
     }
-
-    /* Animated conic border on drag-over */
-    #drop-zone::before {
-      content: '';
-      position: absolute;
-      inset: -2px;
-      border-radius: 13px;
-      background: conic-gradient(
-        from var(--angle, 0deg),
-        var(--green), var(--teal), var(--green), transparent 40%
-      );
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: -1;
-      animation: rotateBorder 2s linear infinite paused;
+    #drop-zone:hover {
+      border-color: rgba(124,186,110,0.4);
+      background: rgba(124,186,110,0.02);
     }
-    @property --angle {
-      syntax: '<angle>';
-      initial-value: 0deg;
-      inherits: false;
+    .drop-active {
+      border-color: rgba(124,186,110,0.6) !important;
+      background: rgba(124,186,110,0.04) !important;
+      box-shadow: inset 0 0 40px rgba(124,186,110,0.06);
     }
-    @keyframes rotateBorder {
-      to { --angle: 360deg; }
-    }
-    #drop-zone.drag-over::before {
-      opacity: 1;
-      animation-play-state: running;
-    }
-    #drop-zone.drag-over {
-      background: rgba(74,222,128,0.06);
-    }
-
-    .drop-icon { font-size: 2rem; margin-bottom: 10px; }
-    .drop-text { color: var(--muted); font-size: 0.9rem; }
-    .drop-text strong { color: var(--text); }
-
-    /* Image preview */
-    #preview-wrap { display: none; margin-top: 16px; position: relative; }
-    #preview-wrap img {
-      width: 100%;
-      max-height: 300px;
-      object-fit: cover;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-    #preview-wrap::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 12px;
-      background: linear-gradient(to top, rgba(8,12,8,0.4), transparent);
-      pointer-events: none;
-    }
-    .clear-btn {
-      position: absolute;
-      top: 10px; right: 10px;
-      z-index: 2;
-      background: rgba(8,12,8,0.75);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: 50%;
-      width: 28px; height: 28px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: color 0.2s, border-color 0.2s;
-    }
-    .clear-btn:hover { color: var(--red); border-color: var(--red); }
-
-    /* Mode buttons */
-    .mode-row { display: flex; gap: 10px; margin-top: 20px; }
-    .mode-btn {
-      flex: 1;
-      padding: 10px 14px;
-      background: rgba(0,0,0,0.25);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--muted);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-    .mode-btn:hover { border-color: rgba(74,222,128,0.3); color: var(--text); }
-    .mode-btn.active {
-      background: rgba(74,222,128,0.1);
-      border-color: var(--green);
-      color: var(--green);
-    }
-
-    /* Analyse button */
-    #analyze-btn {
-      margin-top: 20px;
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      border: none;
+    .drop-icon-box {
+      width: 48px; height: 48px;
+      border: 1px solid rgba(124,186,110,0.2);
       border-radius: 10px;
-      color: #080C08;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.02em;
-      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-    }
-    #analyze-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(74,222,128,0.3);
-    }
-    #analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    /* Loading skeleton */
-    #loading-state { display: none; margin-top: 18px; }
-    .skeleton-line {
-      height: 12px;
-      border-radius: 6px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      margin-bottom: 10px;
-    }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-    .loading-text {
-      text-align: center;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-top: 14px;
-    }
-    .loading-dots::after {
-      content: '';
-      animation: dots 1.5s steps(4, end) infinite;
-    }
-    @keyframes dots {
-      0%   { content: ''; }
-      25%  { content: '.'; }
-      50%  { content: '..'; }
-      75%  { content: '...'; }
-    }
-
-    /* Error */
-    #error-msg {
-      display: none;
-      margin-top: 14px;
-      padding: 12px 16px;
-      background: rgba(248,113,113,0.08);
-      border: 1px solid rgba(248,113,113,0.35);
-      border-radius: 8px;
-      color: var(--red);
-      font-size: 0.87rem;
-    }
-
-    /* ── Result panel ─────────────────────────────────────── */
-    #result-panel {
-      display: none;
-      transform: scale(0.97);
-      opacity: 0;
-      transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.5s cubic-bezier(0.16,1,0.3,1);
-    }
-    #result-panel.visible {
-      transform: scale(1);
-      opacity: 1;
-    }
-
-    .result-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .result-ts {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--muted);
-    }
-
-    /* Two-column hero */
-    .result-hero {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 24px;
-      align-items: start;
-    }
-    @media (max-width: 600px) {
-      .result-hero { grid-template-columns: 1fr; }
-    }
-
-    .species-name {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.8rem, 4vw, 2.5rem);
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      color: var(--text);
-    }
-    .scientific-name {
-      font-family: 'DM Mono', monospace;
-      font-style: italic;
-      font-size: 0.88rem;
-      color: var(--text-sec);
-      margin-top: 6px;
-    }
-
-    /* Conservation badge */
-    .badge {
-      display: inline-block;
-      padding: 4px 11px;
-      border-radius: 5px;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      font-weight: 500;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      margin-top: 12px;
-    }
-    .badge-endangered    { background: rgba(248,113,113,0.12); color: var(--red);   border: 1px solid rgba(248,113,113,0.35); }
-    .badge-vulnerable    { background: rgba(252,211,77,0.12);  color: var(--amber); border: 1px solid rgba(252,211,77,0.35); }
-    .badge-least-concern { background: rgba(74,222,128,0.12);  color: var(--green); border: 1px solid rgba(74,222,128,0.35); }
-    .badge-default       { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
-
-    /* Reference image */
-    #ref-image-wrap {
-      width: 180px;
-      height: 200px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      flex-shrink: 0;
-      background: rgba(0,0,0,0.3);
-    }
-    #ref-image-wrap img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .ref-placeholder {
-      width: 100%; height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
-      opacity: 0.3;
+      margin: 0 auto;
+      color: var(--accent);
+      font-size: 20px;
+      font-family: 'Inter', sans-serif;
     }
-    @media (max-width: 600px) {
-      #ref-image-wrap { width: 100%; height: 180px; }
+    .drop-text-main {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      margin-top: 12px;
+    }
+    .drop-text-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Preview */
+    #preview-wrap {
+      display: none;
+      margin: 0 20px 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      max-height: 280px;
+      background: #000;
+    }
+    #preview-wrap img {
+      width: 100%;
+      height: 280px;
+      object-fit: cover;
+      display: block;
+    }
+    #clear-btn {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      color: var(--text);
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    #clear-btn:hover { background: rgba(196,97,74,0.6); }
+
+    /* Mode buttons */
+    .mode-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 20px 20px;
+    }
+    .mode-btn {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      transition: all 0.2s;
+      text-align: center;
+      border: 1px solid rgba(124,186,110,0.15);
+      background: rgba(12,20,12,0.5);
+      color: var(--text-sec);
+    }
+    .mode-btn:hover {
+      border-color: rgba(124,186,110,0.3);
+      color: var(--text);
+    }
+    .mode-active {
+      border-color: rgba(124,186,110,0.5) !important;
+      background: rgba(124,186,110,0.08) !important;
+      color: var(--text) !important;
+    }
+
+    /* Analyse button */
+    .btn-wrap { padding: 0 20px 20px; }
+    #analyze-btn {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: var(--bg);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    #analyze-btn:hover:not(:disabled) {
+      background: #8DCB7F;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(124,186,110,0.25);
+    }
+    #analyze-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Loading */
+    #loading-wrap {
+      display: none;
+      padding: 0 20px 20px;
+    }
+    .shimmer-bar {
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+      background-size: 400px 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 2px;
+      margin-bottom: 12px;
+    }
+    .loading-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-sec);
+      text-align: center;
+    }
+
+    /* Error */
+    #error-box {
+      display: none;
+      margin: 0 20px 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: rgba(196,97,74,0.1);
+      border: 1px solid rgba(196,97,74,0.3);
+      color: var(--error);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+    }
+
+    /* ── Result card ──────────────────────────────────────── */
+    #result-card {
+      display: none;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s cubic-bezier(0.16,1,0.3,1),
+                  transform 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+    #result-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .result-body { padding: 24px; }
+
+    /* Species row */
+    .result-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: start;
+    }
+    .res-mode-badge {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(124,186,110,0.4);
+      color: var(--accent);
+      background: rgba(124,186,110,0.07);
+      letter-spacing: 0.05em;
+    }
+    .res-mode-badge.teal {
+      border-color: rgba(45,212,191,0.4);
+      color: var(--teal);
+      background: rgba(45,212,191,0.07);
+    }
+    #res-species {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(32px, 4vw, 48px);
+      color: var(--text);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      margin: 8px 0 4px;
+    }
+    #res-sci {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      color: var(--text-sec);
+      font-style: italic;
+    }
+    #res-cons-badge {
+      display: inline-block;
+      margin-top: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(124,186,110,0.3);
+      color: var(--accent);
+      background: rgba(124,186,110,0.15);
+    }
+    #res-cons-badge.endangered {
+      background: rgba(196,97,74,0.15);
+      color: var(--error);
+      border-color: rgba(196,97,74,0.3);
+    }
+    #res-cons-badge.vulnerable {
+      background: rgba(196,160,74,0.15);
+      color: #C4A04A;
+      border-color: rgba(196,160,74,0.3);
+    }
+
+    /* Reference image */
+    #ref-img-wrap {
+      width: 160px;
+      height: 160px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(124,186,110,0.2);
+      flex-shrink: 0;
+      background: rgba(12,20,12,0.8);
+      position: relative;
+    }
+    #res-ref-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    #res-ref-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      opacity: 0.3;
     }
 
     /* Confidence */
-    .confidence-block { margin-top: 24px; }
-    .conf-row { display: flex; align-items: baseline; gap: 8px; }
-    .conf-number {
-      font-family: 'DM Mono', monospace;
-      font-size: 3rem;
-      font-weight: 500;
-      line-height: 1;
+    .conf-block { margin-top: 20px; }
+    .conf-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
-    .conf-high  { color: var(--green); }
-    .conf-mid   { color: var(--amber); }
-    .conf-low   { color: var(--red); }
-    .conf-label {
+    .conf-label-txt {
       font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 11px;
       color: var(--muted);
-      letter-spacing: 0.1em;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
+    #res-conf-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .conf-high { color: var(--accent); }
+    .conf-mid  { color: #C4A04A; }
+    .conf-low  { color: var(--error); }
     .conf-track {
-      margin-top: 10px;
-      height: 5px;
-      background: rgba(255,255,255,0.07);
-      border-radius: 3px;
+      height: 2px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 1px;
       overflow: hidden;
     }
-    .conf-fill {
+    #res-conf-fill {
       height: 100%;
       width: 0%;
-      border-radius: 3px;
+      border-radius: 1px;
       transition: width 1s cubic-bezier(0.16,1,0.3,1);
     }
 
     /* Metrics grid */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(3,1fr);
-      gap: 10px;
-      margin-top: 10px;
+    #res-metrics {
+      display: none;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 16px;
     }
     .metric-card {
-      background: rgba(0,0,0,0.25);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 12px;
+      background: rgba(5,10,5,0.6);
+      border: 1px solid rgba(124,186,110,0.1);
+      border-radius: 8px;
+      padding: 14px;
       text-align: center;
     }
-    .metric-value {
+    .metric-val {
       font-family: 'DM Mono', monospace;
-      font-size: 1.25rem;
-      font-weight: 500;
-      color: var(--teal);
+      font-size: 22px;
+      color: var(--text);
+      line-height: 1;
     }
-    .metric-label {
-      font-size: 0.7rem;
+    .metric-unit {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
       color: var(--muted);
-      margin-top: 4px;
+    }
+    .metric-lbl {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      margin-top: 4px;
     }
 
-    /* Features list */
-    .features-list { list-style: none; margin-top: 10px; }
+    /* Features */
+    #res-features {
+      display: none;
+      margin-top: 16px;
+    }
+    .section-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
     .feature-item {
-      display: flex;
-      gap: 10px;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.9rem;
+      padding: 8px 12px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      background: rgba(5,10,5,0.5);
+      border-left: 2px solid rgba(124,186,110,0.4);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-sec);
+      line-height: 1.5;
       opacity: 0;
       transform: translateX(-8px);
-      transition: opacity 0.35s, transform 0.35s;
+      transition: opacity 0.35s ease, transform 0.35s ease;
     }
-    .feature-item.visible { opacity: 1; transform: translateX(0); }
-    .feature-item:last-child { border-bottom: none; }
-    .feature-item::before {
-      content: '▸';
-      color: var(--green);
-      flex-shrink: 0;
+    .feature-item.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Notes & Rec */
+    #res-notes-wrap {
+      display: none;
+      margin-top: 16px;
+    }
+    #res-rec-wrap {
+      display: none;
+      margin-top: 12px;
+    }
+    .notes-content {
+      padding: 16px;
+      border-radius: 8px;
+      background: rgba(5,10,5,0.8);
+      border: 1px solid rgba(124,186,110,0.08);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-sec);
+      line-height: 1.8;
+    }
+    .rec-content {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(124,186,110,0.05);
+      border-left: 3px solid rgba(124,186,110,0.4);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--accent-em);
       line-height: 1.6;
     }
 
-    /* Field notes */
-    .notes-box {
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
+    /* ── History card ─────────────────────────────────────── */
+    .history-body { padding: 0; }
+    .history-count-badge {
       font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
-      color: var(--text-sec);
-      line-height: 1.8;
-      margin-top: 10px;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 3px 8px;
+      border: 1px solid rgba(124,186,110,0.1);
+      border-radius: 10px;
     }
-
-    /* Recommendation */
-    .rec-box {
-      border-left: 3px solid var(--green);
-      padding: 14px 18px;
-      background: rgba(74,222,128,0.05);
-      border-radius: 0 10px 10px 0;
-      font-size: 0.9rem;
-      color: var(--text);
-      line-height: 1.7;
-      margin-top: 10px;
-    }
-
-    /* Section divider */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 24px 0;
-    }
-
-    /* ── History ──────────────────────────────────────────── */
-    .history-header {
+    #refresh-btn {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 0;
-    }
-    .history-count {
+      gap: 6px;
       font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 11px;
       color: var(--muted);
-      margin-left: 8px;
-    }
-    .refresh-btn {
-      padding: 7px 14px;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.73rem;
+      background: none;
+      border: none;
       cursor: pointer;
-      transition: all 0.2s;
-      display: flex; align-items: center; gap: 6px;
+      transition: color 0.2s;
+      padding: 4px 0;
     }
-    .refresh-btn:hover { border-color: var(--green); color: var(--green); }
-    .refresh-btn:hover .refresh-icon { transform: rotate(180deg); }
-    .refresh-icon { transition: transform 0.4s; display: inline-block; }
+    #refresh-btn:hover { color: var(--accent); }
+    .refresh-icon {
+      display: inline-block;
+      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+    #refresh-btn:hover .refresh-icon { transform: rotate(360deg); }
 
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-top: 16px;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-    thead tr {
-      background: rgba(0,0,0,0.25);
-      border-bottom: 1px solid var(--border);
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
     }
     th {
       font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
+      font-size: 10px;
       color: var(--muted);
-      padding: 11px 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(124,186,110,0.1);
       text-align: left;
       white-space: nowrap;
     }
     td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      vertical-align: middle;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-sec);
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      white-space: nowrap;
     }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr { transition: background 0.15s; }
-    tbody tr:hover { background: rgba(74,222,128,0.04); }
-
-    .conf-cell { font-family: 'DM Mono', monospace; font-weight: 500; }
-    .conf-cell.high { color: var(--green); }
-    .conf-cell.mid  { color: var(--amber); }
-    .conf-cell.low  { color: var(--red); }
+    tbody tr:hover { background: rgba(124,186,110,0.03); }
+    .td-species { color: var(--text); }
+    .td-sci { font-style: italic; }
+    .td-conf { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
+    .td-conf.high { color: var(--accent); }
+    .td-conf.mid  { color: #C4A04A; }
+    .td-conf.low  { color: var(--error); }
+    .td-mode-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      border: 1px solid rgba(124,186,110,0.2);
+      color: var(--text-sec);
+      white-space: nowrap;
+    }
 
     .empty-state {
-      padding: 48px 24px;
+      padding: 48px;
       text-align: center;
+    }
+    .empty-icon {
+      font-size: 32px;
+      display: block;
+      margin-bottom: 12px;
+    }
+    .empty-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
       color: var(--muted);
     }
-    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
-    .empty-state p { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
 
     /* ── Footer ───────────────────────────────────────────── */
     footer {
-      position: relative;
-      z-index: 1;
-      margin-top: 64px;
-      padding: 24px 0 40px;
-      border-top: 1px solid var(--border);
+      padding: 24px 40px;
       text-align: center;
+      border-top: 1px solid rgba(124,186,110,0.08);
+      margin-bottom: 0;
     }
     footer p {
       font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 11px;
       color: var(--muted);
-      letter-spacing: 0.04em;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      nav { padding: 16px; }
+      .nav-badge { display: none; }
+      .hero { padding-top: 100px; }
+      .hero-title { font-size: 42px; }
+      .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); max-width: none; }
+      .stat-item { padding: 16px; }
+      .stat-num { font-size: 22px; }
+      .result-top { grid-template-columns: 1fr; }
+      #ref-img-wrap { width: 100%; height: 180px; order: -1; }
+      .card { margin: 0 12px 20px; }
+      footer { padding: 20px 16px; }
     }
   </style>
 </head>
@@ -728,258 +795,323 @@
   <div class="aurora-blob"></div>
 </div>
 
-<!-- ── Header ──────────────────────────────────────────── -->
-<header>
-  <div class="container">
-    <div class="header-inner fade-up delay-1">
-      <div class="logo-group">
-        <span class="logo-icon">🐢</span>
-        <span class="site-title">Wildlife Track Classifier</span>
-      </div>
-      <span class="gemini-badge">⚡ Powered by Gemini 2.5 Flash</span>
-    </div>
-    <div class="header-line fade-up delay-2"></div>
+<!-- ── NAV ──────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">
+    <span class="nav-logo-icon">🐢</span>
+    <span class="nav-logo-text">Track Classifier</span>
   </div>
-</header>
+  <div class="nav-badge">
+    <span class="nav-badge-dot"></span>
+    Gemini 2.5 Flash
+  </div>
+</nav>
 
-<main class="container">
-
-  <!-- ── Hero ───────────────────────────────────────────── -->
-  <section class="hero">
-    <h1 class="hero-title">
-      <span class="word">Identifica</span><span class="word">rastros.</span>
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="wrap">
+    <p class="hero-eyebrow anim-1">// Herramienta de campo · FFCM Campamentos Tortugueros</p>
+    <h1 class="hero-title anim-2">
+      Identifica rastros,<br>
+      <em>protege especies.</em>
     </h1>
-    <p class="hero-sub">IA de campo para biólogos y conservacionistas.</p>
-    <div class="stats-row">
+    <p class="hero-sub anim-3">
+      IA de campo para biólogos y conservacionistas.<br>
+      Clasificación de tortugas marinas con Gemini Vision.
+    </p>
+    <div class="stats-row anim-4">
       <div class="stat-item">
-        <div class="stat-number" data-count="4" data-suffix="">4</div>
-        <div class="stat-label">Especies monitoreadas</div>
+        <div class="stat-num" id="s1">0</div>
+        <div class="stat-label">Especies</div>
       </div>
       <div class="stat-item">
-        <div class="stat-number" data-count="95" data-suffix="%">95%</div>
-        <div class="stat-label">Precisión promedio</div>
+        <div class="stat-num" id="s2">0%</div>
+        <div class="stat-label">Precisión</div>
       </div>
       <div class="stat-item">
-        <div class="stat-number" data-count="0" data-suffix="" data-realtime="true">—</div>
-        <div class="stat-label">Datos en tiempo real</div>
+        <div class="stat-num" id="s3">—</div>
+        <div class="stat-label">Registros</div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── Upload card ─────────────────────────────────────── -->
-  <div class="card fade-up delay-3">
-    <p class="card-label">// Clasificar imagen</p>
-
-    <div id="drop-zone">
-      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" />
-      <div class="drop-icon">📷</div>
-      <p class="drop-text"><strong>Arrastra una imagen</strong> o haz clic para seleccionar</p>
-      <p class="drop-text" style="margin-top:6px;font-size:0.78rem;color:#374151;">JPG · PNG · WEBP · Máx 10 MB</p>
+<!-- ── UPLOAD CARD ───────────────────────────────────────── -->
+<div class="wrap">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-label">// Clasificar imagen</span>
+      <span class="card-label-right" id="mode-indicator">MODO: TORTUGAS</span>
     </div>
 
+    <!-- Drop zone -->
+    <div class="drop-wrap">
+      <div id="drop-zone">
+        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" />
+        <div class="drop-icon-box">↑</div>
+        <p class="drop-text-main">Arrastra una imagen</p>
+        <p class="drop-text-sub">JPG · PNG · WEBP · Máx 10 MB</p>
+      </div>
+    </div>
+
+    <!-- Preview -->
     <div id="preview-wrap">
       <img id="preview-img" src="" alt="Preview" />
-      <button class="clear-btn" id="clear-btn" title="Quitar imagen">✕</button>
+      <button id="clear-btn" title="Limpiar">✕</button>
     </div>
 
-    <div class="mode-row">
-      <button class="mode-btn active" data-mode="turtle">🐢 Tortugas marinas</button>
+    <!-- Mode selector -->
+    <div class="mode-wrap">
+      <button class="mode-btn mode-active" data-mode="turtle">🐢 Tortugas marinas</button>
       <button class="mode-btn" data-mode="wildlife">🐾 Fauna general</button>
     </div>
 
-    <button id="analyze-btn">Analizar imagen</button>
-
-    <div id="loading-state">
-      <div class="skeleton-line" style="width:70%;"></div>
-      <div class="skeleton-line" style="width:50%;"></div>
-      <div class="skeleton-line" style="width:80%;"></div>
-      <p class="loading-text">Consultando Gemini Vision<span class="loading-dots"></span></p>
+    <!-- Analyse button -->
+    <div class="btn-wrap">
+      <button id="analyze-btn">Analizar imagen</button>
     </div>
 
-    <div id="error-msg"></div>
+    <!-- Loading -->
+    <div id="loading-wrap">
+      <div class="shimmer-bar"></div>
+      <p class="loading-text">Consultando Gemini Vision<span id="loading-dots"></span></p>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box"></div>
   </div>
 
-  <!-- ── Result card ──────────────────────────────────────── -->
-  <div class="card" id="result-panel">
-    <div class="result-header">
-      <p class="card-label" style="margin:0;">// Resultado de clasificación</p>
-      <span class="result-ts" id="result-ts"></span>
+  <!-- ── RESULT CARD ─────────────────────────────────────── -->
+  <div class="card" id="result-card">
+    <div class="card-header">
+      <span class="card-label">// Resultado de clasificación</span>
+      <span class="card-label-right" id="res-timestamp"></span>
     </div>
+    <div class="result-body">
 
-    <!-- Species + image -->
-    <div class="result-hero">
-      <div>
-        <div class="species-name" id="species-name"></div>
-        <div class="scientific-name" id="scientific-name"></div>
-        <div id="status-badge"></div>
-      </div>
-      <div id="ref-image-wrap">
-        <div class="ref-placeholder">🐢</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- Confidence -->
-    <div class="confidence-block">
-      <div class="conf-row">
-        <div class="conf-number" id="conf-number">—</div>
-        <div class="conf-label">Confianza</div>
-      </div>
-      <div class="conf-track">
-        <div class="conf-fill" id="conf-fill"></div>
-      </div>
-    </div>
-
-    <!-- Measurements -->
-    <div id="measurements-section" style="display:none;">
-      <div class="divider"></div>
-      <p class="card-label">// Medidas estimadas</p>
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-value" id="m-width">—</div>
-          <div class="metric-label">Ancho rastro (cm)</div>
+      <!-- Species + image -->
+      <div class="result-top">
+        <div>
+          <span class="res-mode-badge" id="res-mode-badge">TORTUGAS</span>
+          <div id="res-species">—</div>
+          <div id="res-sci"></div>
+          <span id="res-cons-badge">N/A</span>
         </div>
-        <div class="metric-card">
-          <div class="metric-value" id="m-stride">—</div>
-          <div class="metric-label">Zancada (cm)</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-value" id="m-pattern">—</div>
-          <div class="metric-label">Patrón</div>
+        <div id="ref-img-wrap">
+          <img id="res-ref-img" alt="Referencia" />
+          <div id="res-ref-placeholder">🐢</div>
         </div>
       </div>
+
+      <!-- Confidence -->
+      <div class="conf-block">
+        <div class="conf-row">
+          <span class="conf-label-txt">Confianza</span>
+          <span id="res-conf-num" class="conf-high">—</span>
+        </div>
+        <div class="conf-track">
+          <div id="res-conf-fill"></div>
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div id="res-metrics">
+        <div class="metric-card">
+          <div class="metric-val" id="m-width">—</div>
+          <div class="metric-unit">cm</div>
+          <div class="metric-lbl">Ancho rastro</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-stride">—</div>
+          <div class="metric-unit">cm</div>
+          <div class="metric-lbl">Zancada</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-pattern" style="font-size:14px;">—</div>
+          <div class="metric-unit">&nbsp;</div>
+          <div class="metric-lbl">Patrón</div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div id="res-features">
+        <p class="section-label">Características clave</p>
+        <div id="features-list"></div>
+      </div>
+
+      <!-- Notes -->
+      <div id="res-notes-wrap">
+        <p class="section-label">Notas de campo</p>
+        <div class="notes-content" id="res-notes"></div>
+      </div>
+
+      <!-- Recommendation -->
+      <div id="res-rec-wrap">
+        <div class="rec-content" id="res-rec"></div>
+      </div>
+
     </div>
-
-    <!-- Key features -->
-    <div id="features-section">
-      <div class="divider"></div>
-      <p class="card-label">// Características clave</p>
-      <ul class="features-list" id="features-list"></ul>
-    </div>
-
-    <!-- Field notes -->
-    <div class="divider"></div>
-    <p class="card-label">// Notas de campo</p>
-    <div class="notes-box" id="field-notes"></div>
-
-    <!-- Recommendation -->
-    <div class="divider"></div>
-    <p class="card-label">// Recomendación</p>
-    <div class="rec-box" id="recommendation"></div>
   </div>
 
-  <!-- ── History card ─────────────────────────────────────── -->
-  <div class="card fade-up delay-5" id="history-section">
-    <div class="history-header">
-      <p class="card-label" style="margin:0;">
-        // Registros de campo
-        <span class="history-count" id="history-count"></span>
-      </p>
-      <button class="refresh-btn" id="refresh-btn">
-        <span class="refresh-icon">↻</span> Actualizar
+  <!-- ── HISTORY CARD ────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:80px;">
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="card-label">// Registros de campo</span>
+        <span class="history-count-badge" id="hist-count">0</span>
+      </div>
+      <button id="refresh-btn">
+        <span class="refresh-icon">↻</span>
+        Actualizar
       </button>
     </div>
-    <div class="table-wrap">
-      <table id="history-table">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Especie</th>
-            <th>Nombre científico</th>
-            <th>Modo</th>
-            <th>Confianza</th>
-            <th>Estado conservación</th>
-          </tr>
-        </thead>
-        <tbody id="history-body">
-          <tr><td colspan="6">
-            <div class="empty-state">
-              <div class="empty-icon">🏖️</div>
-              <p>Cargando historial…</p>
-            </div>
-          </td></tr>
-        </tbody>
-      </table>
+    <div class="history-body">
+      <div class="table-scroll">
+        <table id="hist-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Especie</th>
+              <th>Nombre científico</th>
+              <th>Modo</th>
+              <th>Confianza</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="hist-body">
+            <tr><td colspan="6">
+              <div class="empty-state">
+                <span class="empty-icon">🏖️</span>
+                <p class="empty-text">Sin registros de campo aún</p>
+              </div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-</main>
+</div><!-- /.wrap -->
 
+<!-- ── FOOTER ───────────────────────────────────────────── -->
 <footer>
-  <div class="container">
-    <p>Wildlife Track Classifier · FFCM Campamentos Tortugueros · Gemini 2.5 Flash</p>
-  </div>
+  <p>Wildlife Track Classifier · UPIEM–IPN · abatazl2300@alumno.ipn.mx</p>
 </footer>
 
 <script>
-  // ── State ───────────────────────────────────────────────
+  'use strict';
+
+  /* ── State ─────────────────────────────────────────────── */
   let selectedFile = null;
   let selectedMode = 'turtle';
+  let dotsTimer    = null;
 
-  // ── DOM refs ────────────────────────────────────────────
+  /* ── DOM refs ───────────────────────────────────────────── */
   const dropZone     = document.getElementById('drop-zone');
   const fileInput    = document.getElementById('file-input');
   const previewWrap  = document.getElementById('preview-wrap');
   const previewImg   = document.getElementById('preview-img');
   const clearBtn     = document.getElementById('clear-btn');
   const analyzeBtn   = document.getElementById('analyze-btn');
-  const loadingState = document.getElementById('loading-state');
-  const errorMsg     = document.getElementById('error-msg');
-  const resultPanel  = document.getElementById('result-panel');
-  const historyBody  = document.getElementById('history-body');
-  const historyCount = document.getElementById('history-count');
+  const loadingWrap  = document.getElementById('loading-wrap');
+  const loadingDots  = document.getElementById('loading-dots');
+  const errorBox     = document.getElementById('error-box');
+  const resultCard   = document.getElementById('result-card');
+  const histBody     = document.getElementById('hist-body');
+  const histCount    = document.getElementById('hist-count');
   const refreshBtn   = document.getElementById('refresh-btn');
+  const modeIndicator= document.getElementById('mode-indicator');
 
-  // ── Mode buttons ────────────────────────────────────────
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedMode = btn.dataset.mode;
-    });
-  });
-
-  // ── Drag & drop ─────────────────────────────────────────
-  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop',      e  => {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
-
-  function setFile(f) {
-    selectedFile = f;
-    previewImg.src = URL.createObjectURL(f);
+  /* ── File handling ──────────────────────────────────────── */
+  function handleFile(file) {
+    if (!file) return;
+    if (selectedFile) URL.revokeObjectURL(previewImg.src);
+    selectedFile = file;
+    previewImg.src = URL.createObjectURL(file);
     previewWrap.style.display = 'block';
+    dropZone.parentElement.style.display = 'none'; // hide drop-wrap
+    analyzeBtn.disabled = false;
     hideError();
   }
 
-  clearBtn.addEventListener('click', e => {
-    e.stopPropagation();
+  function clearImage() {
+    if (selectedFile) URL.revokeObjectURL(previewImg.src);
     selectedFile = null;
     previewImg.src = '';
     previewWrap.style.display = 'none';
+    dropZone.parentElement.style.display = 'block';
     fileInput.value = '';
+    analyzeBtn.disabled = true;
+  }
+
+  /* ── Drag & drop ────────────────────────────────────────── */
+  ['dragenter','dragover'].forEach(e =>
+    dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('drop-active'); })
+  );
+  ['dragleave','drop'].forEach(e =>
+    dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('drop-active'); })
+  );
+  dropZone.addEventListener('drop', ev => handleFile(ev.dataTransfer.files[0]));
+  fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+  clearBtn.addEventListener('click', clearImage);
+
+  /* ── Mode ───────────────────────────────────────────────── */
+  function setMode(mode, btn) {
+    selectedMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('mode-active'));
+    btn.classList.add('mode-active');
+    modeIndicator.textContent = mode === 'turtle' ? 'MODO: TORTUGAS' : 'MODO: FAUNA GENERAL';
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode, btn));
   });
 
-  // ── Analyse ─────────────────────────────────────────────
+  /* ── Loading state ──────────────────────────────────────── */
+  function setLoading(on) {
+    analyzeBtn.style.display  = on ? 'none'  : 'block';
+    loadingWrap.style.display = on ? 'block' : 'none';
+    if (on) {
+      let n = 0;
+      dotsTimer = setInterval(() => {
+        loadingDots.textContent = '.'.repeat((++n % 3) + 1);
+      }, 400);
+    } else {
+      clearInterval(dotsTimer);
+      loadingDots.textContent = '';
+    }
+  }
+
+  /* ── Error ──────────────────────────────────────────────── */
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = 'block';
+  }
+  function hideError() { errorBox.style.display = 'none'; }
+
+  /* ── Classify ───────────────────────────────────────────── */
+  analyzeBtn.disabled = true; // disabled until file selected
+
   analyzeBtn.addEventListener('click', async () => {
     if (!selectedFile) { showError('Selecciona una imagen primero.'); return; }
     setLoading(true);
     hideError();
+    resultCard.style.display = 'none';
+    resultCard.classList.remove('visible');
+
     try {
       const fd = new FormData();
       fd.append('image', selectedFile);
       fd.append('mode', selectedMode);
+
       const res  = await fetch('/classify', { method: 'POST', body: fd });
       const data = await res.json();
+
       if (!res.ok) { showError(data.error || 'Error desconocido'); return; }
+
       renderResult(data);
       loadHistory();
-      setTimeout(() => resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      setTimeout(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
     } catch (err) {
       showError('Error de red: ' + err.message);
     } finally {
@@ -987,160 +1119,179 @@
     }
   });
 
-  function setLoading(on) {
-    analyzeBtn.disabled = on;
-    loadingState.style.display = on ? 'block' : 'none';
-  }
-
-  // ── Render result ────────────────────────────────────────
+  /* ── Render result ──────────────────────────────────────── */
   function renderResult(d) {
-    // show panel (trigger CSS transition)
-    resultPanel.style.display = 'block';
-    requestAnimationFrame(() => requestAnimationFrame(() => resultPanel.classList.add('visible')));
+    /* Show card with transition */
+    resultCard.style.display = 'block';
+    requestAnimationFrame(() => requestAnimationFrame(() => resultCard.classList.add('visible')));
 
-    document.getElementById('result-ts').textContent    = d.timestamp || '';
-    document.getElementById('species-name').textContent  = d.species || '—';
-    document.getElementById('scientific-name').textContent = d.scientific_name || '';
+    /* Timestamp */
+    document.getElementById('res-timestamp').textContent = d.timestamp || '';
 
-    // Conservation badge
-    const badge  = document.getElementById('status-badge');
-    const status = (d.conservation_status || '').toLowerCase();
-    let cls = 'badge-default';
-    if (status.includes('endangered'))     cls = 'badge-endangered';
-    else if (status.includes('vulnerable')) cls = 'badge-vulnerable';
-    else if (status.includes('least concern')) cls = 'badge-least-concern';
-    badge.innerHTML = `<span class="badge ${cls}">${d.conservation_status || 'N/A'}</span>`;
-
-    // Reference image
-    const wrap = document.getElementById('ref-image-wrap');
-    if (d.reference_image) {
-      wrap.innerHTML = `<img src="${d.reference_image}" alt="${d.species}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=ref-placeholder>🐢</div>'" />`;
+    /* Mode badge */
+    const modeBadge = document.getElementById('res-mode-badge');
+    if (d.mode === 'wildlife') {
+      modeBadge.textContent = 'FAUNA GENERAL';
+      modeBadge.classList.add('teal');
     } else {
-      wrap.innerHTML = '<div class="ref-placeholder">🐢</div>';
+      modeBadge.textContent = 'TORTUGAS MARINAS';
+      modeBadge.classList.remove('teal');
     }
 
-    // Confidence
-    const conf   = d.confidence || 0;
-    const confEl = document.getElementById('conf-number');
-    confEl.textContent = conf + '%';
-    confEl.className   = 'conf-number ' + (conf >= 75 ? 'conf-high' : conf >= 50 ? 'conf-mid' : 'conf-low');
-    const fill = document.getElementById('conf-fill');
-    fill.style.width      = '0%';
-    fill.style.background = conf >= 75
-      ? 'linear-gradient(90deg, #4ADE80, #2DD4BF)'
-      : conf >= 50
-        ? '#FCD34D'
-        : '#F87171';
-    requestAnimationFrame(() => { fill.style.width = conf + '%'; });
+    /* Species */
+    document.getElementById('res-species').textContent = d.species || '—';
+    document.getElementById('res-sci').textContent     = d.scientific_name || '';
 
-    // Measurements
-    const measSec = document.getElementById('measurements-section');
+    /* Conservation badge */
+    const cons  = document.getElementById('res-cons-badge');
+    const st    = (d.conservation_status || '').toLowerCase();
+    cons.textContent  = d.conservation_status || 'N/A';
+    cons.className    = '';
+    if (st.includes('endangered'))      cons.className = 'endangered';
+    else if (st.includes('vulnerable')) cons.className = 'vulnerable';
+
+    /* Reference image */
+    const refImg  = document.getElementById('res-ref-img');
+    const refPlh  = document.getElementById('res-ref-placeholder');
+    if (d.reference_image) {
+      refImg.src = d.reference_image;
+      refImg.style.display = 'block';
+      refPlh.style.display = 'none';
+      refImg.onerror = () => { refImg.style.display='none'; refPlh.style.display='flex'; };
+    } else {
+      refImg.style.display  = 'none';
+      refPlh.style.display  = 'flex';
+    }
+
+    /* Confidence */
+    const conf     = d.confidence || 0;
+    const confNum  = document.getElementById('res-conf-num');
+    const confFill = document.getElementById('res-conf-fill');
+    confNum.textContent = conf + '%';
+    const confClass = conf >= 75 ? 'conf-high' : conf >= 50 ? 'conf-mid' : 'conf-low';
+    confNum.className   = confClass;
+    const fillColor     = conf >= 75 ? '#7CBA6E' : conf >= 50 ? '#C4A04A' : '#C4614A';
+    confFill.style.background = fillColor;
+    confFill.style.width = '0%';
+    setTimeout(() => { confFill.style.width = conf + '%'; }, 50);
+
+    /* Metrics */
+    const metricsSec = document.getElementById('res-metrics');
     if (d.mode === 'turtle' && d.measurements) {
       const m = d.measurements;
       document.getElementById('m-width').textContent   = m.track_width_cm   ?? '—';
       document.getElementById('m-stride').textContent  = m.stride_length_cm ?? '—';
       document.getElementById('m-pattern').textContent = m.pattern          ?? '—';
-      measSec.style.display = 'block';
+      metricsSec.style.display = 'grid';
     } else {
-      measSec.style.display = 'none';
+      metricsSec.style.display = 'none';
     }
 
-    // Key features with staggered reveal
-    const ul = document.getElementById('features-list');
-    ul.innerHTML = '';
-    (d.key_features || []).forEach((f, i) => {
-      const li = document.createElement('li');
-      li.className = 'feature-item';
-      li.textContent = f;
-      ul.appendChild(li);
-      setTimeout(() => li.classList.add('visible'), 100 + i * 80);
-    });
+    /* Features */
+    const featSec  = document.getElementById('res-features');
+    const featList = document.getElementById('features-list');
+    const features = d.key_features || [];
+    if (features.length) {
+      featSec.style.display = 'block';
+      featList.innerHTML = '';
+      features.forEach((f, i) => {
+        const el = document.createElement('div');
+        el.className = 'feature-item';
+        el.textContent = f;
+        featList.appendChild(el);
+        setTimeout(() => el.classList.add('visible'), 80 + i * 80);
+      });
+    } else {
+      featSec.style.display = 'none';
+    }
 
-    document.getElementById('field-notes').textContent    = d.field_notes    || '—';
-    document.getElementById('recommendation').textContent  = d.recommendation || '—';
+    /* Notes */
+    const notesWrap = document.getElementById('res-notes-wrap');
+    if (d.field_notes) {
+      document.getElementById('res-notes').textContent = d.field_notes;
+      notesWrap.style.display = 'block';
+    } else {
+      notesWrap.style.display = 'none';
+    }
+
+    /* Recommendation */
+    const recWrap = document.getElementById('res-rec-wrap');
+    if (d.recommendation) {
+      document.getElementById('res-rec').textContent = d.recommendation;
+      recWrap.style.display = 'block';
+    } else {
+      recWrap.style.display = 'none';
+    }
   }
 
-  // ── History ──────────────────────────────────────────────
+  /* ── History ────────────────────────────────────────────── */
   async function loadHistory() {
     try {
       const res  = await fetch('/history');
       const rows = await res.json();
-      if (!Array.isArray(rows) || rows.length === 0) {
-        historyCount.textContent = '';
-        historyBody.innerHTML = `<tr><td colspan="6">
-          <div class="empty-state">
-            <div class="empty-icon">🏖️</div>
-            <p>Sin clasificaciones aún.</p>
-          </div></td></tr>`;
-        updateRealtimeStat(0);
-        return;
-      }
-      historyCount.textContent = `(${rows.length})`;
-      updateRealtimeStat(rows.length);
-      historyBody.innerHTML = rows.map(r => {
-        const conf = r.confianza || 0;
-        const cls  = conf >= 75 ? 'high' : conf >= 50 ? 'mid' : 'low';
-        const mode = r.modo === 'turtle' ? '🐢 Tortugas' : '🐾 Fauna';
-        return `<tr>
-          <td style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--muted);">${r.timestamp || '—'}</td>
-          <td>${r.especie || '—'}</td>
-          <td style="font-family:'DM Mono',monospace;font-style:italic;font-size:0.8rem;color:var(--text-sec);">${r.nombre_cientifico || '—'}</td>
-          <td style="font-size:0.82rem;">${mode}</td>
-          <td class="conf-cell ${cls}">${conf}%</td>
-          <td style="font-size:0.82rem;">${r.estado_conservacion || '—'}</td>
-        </tr>`;
-      }).join('');
+      renderHistory(Array.isArray(rows) ? rows : []);
     } catch (e) {
-      historyBody.innerHTML = `<tr><td colspan="6">
-        <div class="empty-state"><p>Error al cargar historial.</p></div>
-      </td></tr>`;
+      renderHistory([]);
     }
+  }
+
+  function renderHistory(rows) {
+    histCount.textContent = rows.length;
+
+    /* Update s3 stat */
+    const s3 = document.getElementById('s3');
+    if (rows.length > 0) {
+      countUp(s3, rows.length, 800, '');
+    } else {
+      s3.textContent = '—';
+    }
+
+    if (!rows.length) {
+      histBody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state">
+          <span class="empty-icon">🏖️</span>
+          <p class="empty-text">Sin registros de campo aún</p>
+        </div></td></tr>`;
+      return;
+    }
+
+    histBody.innerHTML = rows.map(r => {
+      const conf = r.confianza || 0;
+      const cls  = conf >= 75 ? 'high' : conf >= 50 ? 'mid' : 'low';
+      const mode = r.modo === 'turtle' ? '🐢 Tortugas' : '🐾 Fauna';
+      return `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">${r.timestamp || '—'}</td>
+        <td class="td-species">${r.especie || '—'}</td>
+        <td class="td-sci" style="color:var(--text-sec);">${r.nombre_cientifico || '—'}</td>
+        <td><span class="td-mode-badge">${mode}</span></td>
+        <td class="td-conf ${cls}">${conf}%</td>
+        <td style="font-size:12px;">${r.estado_conservacion || '—'}</td>
+      </tr>`;
+    }).join('');
   }
 
   refreshBtn.addEventListener('click', loadHistory);
 
-  // ── Helpers ──────────────────────────────────────────────
-  function showError(msg) { errorMsg.textContent = msg; errorMsg.style.display = 'block'; }
-  function hideError()    { errorMsg.style.display = 'none'; }
-
-  // ── countUp animation ────────────────────────────────────
-  function countUp(el, target, suffix, duration) {
+  /* ── countUp ────────────────────────────────────────────── */
+  function countUp(el, target, duration, suffix) {
     const start = Date.now();
-    const tick  = () => {
-      const elapsed  = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease     = 1 - Math.pow(1 - progress, 3);
+    const tick = () => {
+      const p = Math.min((Date.now() - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 2); // quadratic ease-out
       el.textContent = Math.round(ease * target) + suffix;
-      if (progress < 1) requestAnimationFrame(tick);
+      if (p < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   }
 
-  function updateRealtimeStat(n) {
-    const el = document.querySelector('.stat-number[data-realtime="true"]');
-    if (el) countUp(el, n, '', 800);
-  }
-
-  // Intersection Observer for stats
-  const statsRow = document.querySelector('.stats-row');
-  if (statsRow) {
-    const obs = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        document.querySelectorAll('.stat-number[data-count]').forEach(el => {
-          if (!el.dataset.realtime) {
-            const target = parseInt(el.dataset.count, 10);
-            const suffix = el.dataset.suffix || '';
-            countUp(el, target, suffix, 2000);
-          }
-        });
-        obs.disconnect();
-      }
-    }, { threshold: 0.5 });
-    obs.observe(statsRow);
-  }
-
-  // ── Init ─────────────────────────────────────────────────
-  loadHistory();
+  /* ── Init ───────────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    loadHistory();
+    setTimeout(() => {
+      countUp(document.getElementById('s1'), 4,  1200, '');
+      countUp(document.getElementById('s2'), 95, 1400, '%');
+    }, 600);
+  });
 </script>
 </body>
 </html>
