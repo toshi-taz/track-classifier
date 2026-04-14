@@ -9,6 +9,7 @@ import csv
 from PIL import Image
 import pathlib
 from datetime import datetime
+from gps_extractor import extract_gps
 
 load_dotenv()
 
@@ -57,27 +58,35 @@ def clasificar(image_path, mode="turtle"):
 
     return json.loads(text)
 
-def guardar_historial(image_path, result, mode):
-    """Guarda la clasificación en el historial CSV."""
-    file_exists = os.path.exists(HISTORIAL_FILE)
-    with open(HISTORIAL_FILE, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["timestamp", "imagen", "modo", "especie", "nombre_cientifico",
-                           "confianza", "ancho_rastro_cm", "estado_conservacion", "notas"])
-        m = result.get("measurements", {})
-        writer.writerow([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            os.path.basename(image_path),
-            mode,
-            result.get("species", "N/A"),
-            result.get("scientific_name", "N/A"),
-            result.get("confidence", 0),
-            m.get("track_width_cm", "N/A") if mode == "turtle" else "N/A",
-            result.get("conservation_status", "N/A"),
-            result.get("field_notes", "N/A")[:100]
-        ])
-    print(f"📊 Guardado en historial: {HISTORIAL_FILE}")
+@app.route("/map")
+def map_view():
+    """Renderiza un mapa Leaflet con marcadores de clasificaciones."""
+    import pandas as pd
+    
+    csv_path = "historial_clasificaciones.csv"
+    if not os.path.exists(csv_path):
+        return render_template("map.html", markers=[])
+    
+    try:
+        df = pd.read_csv(csv_path, encoding="utf-8")
+        # Filtrar solo registros con coordenadas
+        df = df.dropna(subset=["latitude", "longitude"])
+        
+        markers = []
+        for _, row in df.iterrows():
+            markers.append({
+                "latitude": row["latitude"],
+                "longitude": row["longitude"],
+                "species": row["especie"],
+                "confidence": float(row["confianza"]) if pd.notna(row["confianza"]) else 0,
+                "timestamp": row["timestamp"],
+                "mode": row["modo"],
+                "scientific_name": row["nombre_cientifico"]
+            })
+        
+        return render_template("map.html", markers=markers)
+    except Exception as e:
+        return render_template("map.html", markers=[], error=str(e))
 
 def mostrar_resultado(result, mode="turtle"):
     print("=" * 55)
