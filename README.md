@@ -1,111 +1,49 @@
-# Wildlife Track Classifier 🐢🔍
+# Wildlife Track Classifier 🐢
 
-**🟢 Live en [https://track-classifier.onrender.com](https://track-classifier.onrender.com)**
+> Herramienta de IA de campo para identificación de rastros de fauna marina.  
+> **Live:** https://track-classifier.onrender.com
 
-> Herramienta de IA de campo para identificación de rastros de tortugas marinas y fauna silvestre.  
-> Desarrollada para programas de monitoreo de playas — FFCM Campamentos Tortugueros, México.
+![Python](https://img.shields.io/badge/Python-3.14-blue)
+![Flask](https://img.shields.io/badge/Flask-3.1-green)
+![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-orange)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
----
+## ¿Qué hace?
+Sube una foto de rastros en arena → Gemini Vision identifica la especie,
+estima medidas, devuelve estado de conservación y recomendaciones de campo.
 
-<!-- Screenshot: reemplaza esta línea con tu imagen cuando hagas deploy
-![UI Screenshot](docs/screenshot.png)
--->
+## Especies soportadas
+| Especie | Nombre científico | Estado |
+|---|---|---|
+| Tortuga verde | *Chelonia mydas* | Endangered |
+| Tortuga caguama | *Caretta caretta* | Vulnerable |
+| Tortuga carey | *Eretmochelys imbricata* | Critically Endangered |
+| Tortuga laúd | *Dermochelys coriacea* | Vulnerable |
 
----
+## Stack
+- **Backend:** Python 3.14, Flask, Gemini Vision API (gemini-2.5-flash)
+- **Frontend:** HTML/CSS/JS vanilla, tipografía Instrument Serif + DM Mono
+- **Deploy:** Render.com (free tier)
 
-CLI tool for identifying wildlife tracks and signs from photos using Gemini Vision AI.
-
-Developed as a field tool for sea turtle monitoring programs.
-
-## Features
-- Identify sea turtle species from beach track photos
-- Estimate track measurements (width, stride length, pattern)
-- Conservation status and field recommendations
-- General wildlife mode for any animal tracks
-- Results saved as JSON for data pipeline integration
-- Web UI with drag-and-drop image upload and classification history
-
-## Supported Species
-- *Chelonia mydas* — Green sea turtle
-- *Caretta caretta* — Loggerhead sea turtle  
-- *Eretmochelys imbricata* — Hawksbill sea turtle
-- *Dermochelys coriacea* — Leatherback sea turtle
-
-## Setup
+## Setup local
 ```bash
-git clone https://github.com/toshi-taz/track-classifier.git
+git clone https://github.com/toshi-taz/track-classifier
 cd track-classifier
 pip install -r requirements.txt
-```
-
-Create `.env` file:
-```
-GEMINI_API_KEY=your_api_key_here
-```
-
-## Usage
-
-### Web app (Flask)
-```bash
+# Crea .env con GEMINI_API_KEY=tu_clave
 python app.py
-# → http://localhost:5000
 ```
 
-### CLI
+## Uso CLI (modo original)
 ```bash
-# Sea turtle track identification
-python classifier.py --image photo.jpg --mode turtle
-
-# General wildlife track
-python classifier.py --image photo.jpg --mode wildlife
-
-# Interactive menu
-python classifier.py
+python classifier.py --image foto.jpg --mode turtle
+python classifier.py --image foto.jpg --mode wildlife
 ```
 
-## Example Output
-```json
-{
-  "species": "Green sea turtle",
-  "scientific_name": "Chelonia mydas",
-  "confidence": 95,
-  "measurements": {
-    "track_width_cm": 100,
-    "stride_length_cm": 90,
-    "pattern": "simultaneous"
-  },
-  "conservation_status": "Endangered",
-  "key_features": ["Simultaneous front flipper impressions", "..."],
-  "field_notes": "...",
-  "recommendation": "..."
-}
-```
-
-## Deploy
-
-### Render.com (included `render.yaml`)
-1. Fork or push this repo to GitHub
-2. Create a new **Web Service** on [render.com](https://render.com) and connect the repo
-3. Render auto-detects `render.yaml` — no manual config needed
-4. Set the required environment variable in the Render dashboard:
-
-| Variable | Description |
-|---|---|
-| `GEMINI_API_KEY` | Your Google AI Studio API key ([get one here](https://aistudio.google.com/app/apikey)) |
-
-5. Deploy — build command runs `pip install -r requirements.txt`, start command runs `gunicorn app:app`
-
-> **Note:** The free Render tier spins down after 15 min of inactivity. First request after sleep takes ~30 s.
-
-### Local / self-hosted
-```bash
-gunicorn app:app --bind 0.0.0.0:5000
-```
-
-## Field Application
-Designed for use in sea turtle nesting beach monitoring programs such as FFCM Campamentos Tortugueros (Mexico).
-
-## Author
+## Autor
 Alexander Toshiro Bataz López  
 Ingeniería en Sistemas Energéticos y Redes Inteligentes — UPIEM–IPN  
-Conservation Technology | Wildlife Telemetry | IoT Sensor Networks
+abatazl2300@alumno.ipn.mx
+
+---
+*Desarrollado como herramienta de apoyo para FFCM Campamentos Tortugueros*
