@@ -47,3 +47,63 @@ abatazl2300@alumno.ipn.mx
 
 ---
 *Desarrollado como herramienta de apoyo para FFCM Campamentos Tortugueros*
+
+## 🎯 Cómo Usar
+
+1. Descarga el código:
+```bash
+git clone https://github.com/toshi-taz/track-classifier.git
+cd track-classifier
+```
+
+2. Instala dependencias:
+```bash
+pip install -r requirements.txt
+```
+
+3. Configura tu API key:
+```bash
+export GEMINI_API_KEY="tu_api_key_aqui"
+```
+
+4. Ejecuta:
+```bash
+python app.py
+```
+
+5. Abre en navegador:
+http://localhost:5000
+
+## 🌍 Para Qué Sirve
+
+- 🐢 Clasificación automática de rastros marinos (Xcaret, Reserva Pacuare)
+- 🦁 Identificación de fauna terrestre (Rewilding Argentina)
+- 📸 Análisis de fotos de cámaras trampa
+- 📊 Historial georreferenciado de observaciones
+
+## 🔄 Stack
+
+| Parte | Tecnología |
+|-------|------------|
+| Backend | Python / Flask |
+| IA | Google Gemini Vision API |
+| Frontend | HTML/CSS/Bootstrap |
+| Datos | Pandas + CSV |
+| Deploy | Render |
+
+## 📝 Roadmap
+
+- [x] Clasificación básica
+- [x] Historial en CSV
+- [x] API REST
+- [ ] GPS + Mapas (en desarrollo)
+- [ ] Base de datos SQL
+- [ ] Autenticación multi-usuario
+
+## 🤝 Contribuciones
+
+¿Trabajas en monitoreo de especies o tecnología para conservación? ¡Contribuciones bienvenidas!
+
+Desarrollado para equipos de conservación en Mesoamérica y Patagonia.
+
+
