@@ -58,6 +58,37 @@ def clasificar(image_path, mode="turtle"):
 
     return json.loads(text)
 
+def guardar_historial(image_path, result, mode):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    try:
+        gps = extract_gps(image_path)
+        lat = gps.get("latitude", "") if gps else ""
+        lon = gps.get("longitude", "") if gps else ""
+    except Exception:
+        lat, lon = "", ""
+
+    fieldnames = [
+        "timestamp", "especie", "nombre_cientifico", "confianza",
+        "modo", "latitude", "longitude", "estado_conservacion"
+    ]
+    file_exists = os.path.exists(HISTORIAL_FILE)
+    with open(HISTORIAL_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            "timestamp": timestamp,
+            "especie": result.get("species", ""),
+            "nombre_cientifico": result.get("scientific_name", ""),
+            "confianza": result.get("confidence", 0),
+            "modo": mode,
+            "latitude": lat,
+            "longitude": lon,
+            "estado_conservacion": result.get("conservation_status", "")
+        })
+    print(f"💾 Historial guardado en {HISTORIAL_FILE}")
+
+
 def mostrar_resultado(result, mode="turtle"):
     print("=" * 55)
     print("🐢 WILDLIFE TRACK CLASSIFIER — Resultado")
@@ -70,12 +101,25 @@ def mostrar_resultado(result, mode="turtle"):
     print(f"🔬 Nombre científico: {result.get('scientific_name', 'N/A')}")
     print(f"{emoji} Confianza: {confianza}%")
 
-    if mode == "turtle" and "measurements" in result:
-        m = result["measurements"]
-        print(f"\n📏 Medidas estimadas:")
-        print(f"   Ancho del rastro: {m.get('track_width_cm', 'N/A')} cm")
-        print(f"   Longitud de zancada: {m.get('stride_length_cm', 'N/A')} cm")
-        print(f"   Patrón: {m.get('pattern', 'N/A')}")
+    if mode == "turtle":
+        if "measurements" in result:
+            m = result["measurements"]
+            print(f"\n📏 Medidas estimadas:")
+            print(f"   Ancho del rastro: {m.get('track_width_cm', 'N/A')} cm")
+            print(f"   Longitud de zancada: {m.get('stride_length_cm', 'N/A')} cm")
+            print(f"   Patrón: {m.get('pattern', 'N/A')}")
+
+        if result.get("animal_size_estimate"):
+            print(f"\n📐 Tamaño estimado del animal:")
+            print(f"   {result['animal_size_estimate']}")
+
+        if result.get("track_condition"):
+            print(f"\n🏖️  Condición del rastro:")
+            print(f"   {result['track_condition']}")
+
+        if result.get("estimated_nesting_time"):
+            print(f"\n🕐 Hora estimada de anidado:")
+            print(f"   {result['estimated_nesting_time']}")
 
     if "conservation_status" in result:
         print(f"\n⚠️  Estado de conservación: {result.get('conservation_status', 'N/A')}")
@@ -87,6 +131,10 @@ def mostrar_resultado(result, mode="turtle"):
 
     print(f"\n📝 Notas de campo:")
     print(f"   {result.get('field_notes', 'N/A')}")
+
+    if result.get("immediate_action"):
+        print(f"\n🚨 ACCIÓN INMEDIATA:")
+        print(f"   {result['immediate_action']}")
 
     print(f"\n✅ Recomendación:")
     print(f"   {result.get('recommendation', 'N/A')}")
@@ -114,10 +162,10 @@ def modo_interactivo():
         if opcion == "1":
             image_path = input("→ Ruta de la imagen: ").strip()
             print("\n→ Modo:")
-            print("  [1] Tortugas marinas")
-            print("  [2] Fauna general")
-            modo_opcion = input("→ Elige modo: ").strip()
-            mode = "turtle" if modo_opcion == "1" else "wildlife"
+            print("  [1] Tortugas marinas (principal)")
+            print("  [2] Fauna general (secundario)")
+            modo_opcion = input("→ Elige modo [1]: ").strip()
+            mode = "wildlife" if modo_opcion == "2" else "turtle"
 
             try:
                 result = clasificar(image_path, mode)

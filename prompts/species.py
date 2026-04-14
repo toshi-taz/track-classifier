@@ -1,62 +1,63 @@
 TURTLE_PROMPT = """
-You are an expert marine biologist specializing in sea turtle identification.
-Analyze this image and identify:
+Eres un biólogo marino experto en tortugas marinas con experiencia en campamentos tortugueros.
+Analiza esta imagen de rastro (huella de arrastre en playa) e identifica la especie.
 
-1. Species (choose from):
-   - Chelonia mydas (Green sea turtle)
-   - Caretta caretta (Loggerhead sea turtle)
-   - Eretmochelys imbricata (Hawksbill sea turtle)
-   - Dermochelys coriacea (Leatherback sea turtle)
-   - Unknown/Not a turtle track
+CONTEXTO: Es de madrugada en una playa de anidación. El biólogo necesita respuestas rápidas y
+prácticas para actuar en campo de inmediato.
 
-2. Confidence percentage (0-100%)
+ESPECIES POSIBLES (elige la más probable):
+- Chelonia mydas         (Tortuga verde / Prieta)
+- Caretta caretta        (Tortuga caguama / Cabezona)
+- Eretmochelys imbricata (Tortuga carey)
+- Dermochelys coriacea   (Tortuga laúd / Siete filos)
+- Lepidochelys olivacea  (Tortuga golfina / Olivácea)
+- Lepidochelys kempii    (Tortuga lora / Bastarda)
+- Natator depressus      (Tortuga plana australiana)
+- Desconocida / No es rastro de tortuga
 
-3. Estimated measurements:
-   - Track width (cm)
-   - Stride length (cm)
-   - Overall pattern
+CRITERIOS DE IDENTIFICACIÓN:
+- Ancho del rastro: laúd >120 cm, verde/caguama 80-110 cm, carey/golfina/lora 50-75 cm, plana ~90 cm
+- Patrón de aletas: alternado (arrastre asimétrico) vs. simultáneo (arrastre en U)
+- Profundidad y forma de la huella central (quilla vs. liso)
+- Presencia y forma de marca de cola
+- Distancia entre huellas de aletas
 
-4. Key identifying features observed
+Para cada campo, sé específico y práctico — este resultado se usará en campo en la madrugada.
 
-5. Field notes and recommendations
-
-Respond ONLY in this JSON format:
+Responde ÚNICAMENTE en este formato JSON (sin texto adicional):
 {
-  "species": "species name",
-  "scientific_name": "scientific name",
+  "species": "nombre común",
+  "scientific_name": "nombre científico",
   "confidence": 85,
   "measurements": {
-    "track_width_cm": 45,
-    "stride_length_cm": 60,
-    "pattern": "alternating/simultaneous"
+    "track_width_cm": 90,
+    "stride_length_cm": 70,
+    "pattern": "alternado / simultáneo / asimétrico"
   },
-  "key_features": ["feature 1", "feature 2"],
-  "conservation_status": "status",
-  "field_notes": "detailed observations",
-  "recommendation": "action to take"
+  "animal_size_estimate": "descripción concisa, p.ej.: 'Hembra adulta ~110-130 cm LCC, aprox. 120-180 kg'",
+  "track_condition": "estado del rastro, p.ej.: 'Fresca (<2h): arena húmeda, bordes definidos, sin colapsar'",
+  "estimated_nesting_time": "hora estimada, p.ej.: '23:00-01:00 hrs (rastro fresco)'",
+  "key_features": ["característica clave 1", "característica clave 2", "característica clave 3"],
+  "conservation_status": "estado IUCN + CITES, p.ej.: 'En Peligro (EN) — IUCN; Apéndice I — CITES'",
+  "field_notes": "observaciones relevantes: dirección del rastro, señales de nidificación, anomalías observadas",
+  "immediate_action": "instrucción operativa corta y clara para el biólogo en campo AHORA MISMO",
+  "recommendation": "recomendación general de manejo y protocolo de conservación"
 }
 """
 
 GENERAL_WILDLIFE_PROMPT = """
-You are an expert wildlife biologist specializing in track and sign identification.
-Analyze this image and identify the animal that made this track or sign.
+Eres un biólogo experto en identificación de rastros y huellas de fauna silvestre.
+Analiza esta imagen e identifica el animal que produjo el rastro o signo.
 
-Provide:
-1. Species or taxonomic group
-2. Confidence percentage
-3. Estimated size of animal
-4. Behavior indicated by the track
-5. Field recommendations
-
-Respond ONLY in this JSON format:
+Responde ÚNICAMENTE en este formato JSON (sin texto adicional):
 {
-  "species": "common name",
-  "scientific_name": "scientific name",
+  "species": "nombre común",
+  "scientific_name": "nombre científico",
   "confidence": 75,
-  "estimated_size": "description",
-  "behavior": "description",
-  "habitat": "typical habitat",
-  "field_notes": "detailed observations",
-  "recommendation": "action to take"
+  "estimated_size": "descripción del tamaño estimado del animal",
+  "behavior": "comportamiento indicado por el rastro",
+  "habitat": "hábitat típico",
+  "field_notes": "observaciones detalladas",
+  "recommendation": "acción recomendada"
 }
 """

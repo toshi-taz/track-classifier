@@ -350,12 +350,10 @@
 
     /* Mode buttons */
     .mode-wrap {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
       padding: 0 20px 20px;
     }
-    .mode-btn {
+    .mode-btn-primary {
+      width: 100%;
       padding: 12px;
       border-radius: 8px;
       cursor: pointer;
@@ -366,8 +364,10 @@
       border: 1px solid rgba(124,186,110,0.15);
       background: rgba(12,20,12,0.5);
       color: var(--text-sec);
+      display: block;
+      margin-bottom: 6px;
     }
-    .mode-btn:hover {
+    .mode-btn-primary:hover {
       border-color: rgba(124,186,110,0.3);
       color: var(--text);
     }
@@ -375,6 +375,30 @@
       border-color: rgba(124,186,110,0.5) !important;
       background: rgba(124,186,110,0.08) !important;
       color: var(--text) !important;
+    }
+    .mode-btn-secondary {
+      display: block;
+      width: 100%;
+      padding: 7px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      transition: all 0.2s;
+      text-align: center;
+      border: 1px solid rgba(124,186,110,0.08);
+      background: transparent;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .mode-btn-secondary:hover {
+      border-color: rgba(124,186,110,0.2);
+      color: var(--text-sec);
+    }
+    .mode-btn-secondary.mode-active {
+      border-color: rgba(45,212,191,0.3) !important;
+      background: rgba(45,212,191,0.04) !important;
+      color: var(--teal) !important;
     }
 
     /* Analyse button */
@@ -639,6 +663,59 @@
       transform: translateX(0);
     }
 
+    /* Immediate action */
+    #res-immediate-wrap {
+      display: none;
+      margin-top: 16px;
+    }
+    .immediate-content {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(196,97,74,0.08);
+      border-left: 3px solid rgba(196,97,74,0.6);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #E8846A;
+      line-height: 1.5;
+    }
+    .immediate-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: #C4614A;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+
+    /* Field info grid */
+    #res-field-info {
+      display: none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .field-info-card {
+      background: rgba(5,10,5,0.6);
+      border: 1px solid rgba(124,186,110,0.1);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .field-info-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .field-info-val {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--text-sec);
+      line-height: 1.5;
+    }
+
     /* Notes & Rec */
     #res-notes-wrap {
       display: none;
@@ -783,6 +860,7 @@
       #ref-img-wrap { width: 100%; height: 180px; order: -1; }
       .card { margin: 0 12px 20px; }
       footer { padding: 20px 16px; }
+      #res-field-info { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -862,8 +940,8 @@
 
     <!-- Mode selector -->
     <div class="mode-wrap">
-      <button class="mode-btn mode-active" data-mode="turtle">🐢 Tortugas marinas</button>
-      <button class="mode-btn" data-mode="wildlife">🐾 Fauna general</button>
+      <button class="mode-btn-primary mode-active" data-mode="turtle">🐢 Tortugas marinas</button>
+      <button class="mode-btn-secondary" data-mode="wildlife">🐾 Fauna general (modo secundario)</button>
     </div>
 
     <!-- Analyse button -->
@@ -930,6 +1008,28 @@
           <div class="metric-val" id="m-pattern" style="font-size:14px;">—</div>
           <div class="metric-unit">&nbsp;</div>
           <div class="metric-lbl">Patrón</div>
+        </div>
+      </div>
+
+      <!-- Immediate action -->
+      <div id="res-immediate-wrap">
+        <p class="immediate-label">Acción inmediata</p>
+        <div class="immediate-content" id="res-immediate"></div>
+      </div>
+
+      <!-- Field info: size / condition / nesting time -->
+      <div id="res-field-info">
+        <div class="field-info-card">
+          <div class="field-info-label">Tamaño estimado</div>
+          <div class="field-info-val" id="fi-size">—</div>
+        </div>
+        <div class="field-info-card">
+          <div class="field-info-label">Condición del rastro</div>
+          <div class="field-info-val" id="fi-condition">—</div>
+        </div>
+        <div class="field-info-card">
+          <div class="field-info-label">Hora de anidado est.</div>
+          <div class="field-info-val" id="fi-nesting">—</div>
         </div>
       </div>
 
@@ -1058,12 +1158,12 @@
   /* ── Mode ───────────────────────────────────────────────── */
   function setMode(mode, btn) {
     selectedMode = mode;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('mode-active'));
+    document.querySelectorAll('.mode-btn-primary, .mode-btn-secondary').forEach(b => b.classList.remove('mode-active'));
     btn.classList.add('mode-active');
     modeIndicator.textContent = mode === 'turtle' ? 'MODO: TORTUGAS' : 'MODO: FAUNA GENERAL';
   }
 
-  document.querySelectorAll('.mode-btn').forEach(btn => {
+  document.querySelectorAll('.mode-btn-primary, .mode-btn-secondary').forEach(btn => {
     btn.addEventListener('click', () => setMode(btn.dataset.mode, btn));
   });
 
@@ -1212,6 +1312,26 @@
       featSec.style.display = 'none';
     }
 
+    /* Immediate action */
+    const immediateWrap = document.getElementById('res-immediate-wrap');
+    if (d.immediate_action) {
+      document.getElementById('res-immediate').textContent = d.immediate_action;
+      immediateWrap.style.display = 'block';
+    } else {
+      immediateWrap.style.display = 'none';
+    }
+
+    /* Field info: size / condition / nesting time */
+    const fieldInfo = document.getElementById('res-field-info');
+    if (d.mode === 'turtle' && (d.animal_size_estimate || d.track_condition || d.estimated_nesting_time)) {
+      document.getElementById('fi-size').textContent      = d.animal_size_estimate   || '—';
+      document.getElementById('fi-condition').textContent = d.track_condition        || '—';
+      document.getElementById('fi-nesting').textContent   = d.estimated_nesting_time || '—';
+      fieldInfo.style.display = 'grid';
+    } else {
+      fieldInfo.style.display = 'none';
+    }
+
     /* Notes */
     const notesWrap = document.getElementById('res-notes-wrap');
     if (d.field_notes) {
@@ -1295,7 +1415,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
     setTimeout(() => {
-      countUp(document.getElementById('s1'), 4,  1200, '');
+      countUp(document.getElementById('s1'), 7,  1200, '');
       countUp(document.getElementById('s2'), 95, 1400, '%');
     }, 600);
   });

@@ -69,6 +69,7 @@ def classify():
 
         from classifier import clasificar
         result = clasificar(tmp_path, mode)
+        result["mode"] = mode
         return jsonify(result)
 
     except json.JSONDecodeError:
@@ -78,6 +79,24 @@ def classify():
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+
+@app.route("/history")
+def history():
+    """Devuelve el historial de clasificaciones como JSON."""
+    import pandas as pd
+
+    csv_path = "historial_clasificaciones.csv"
+    if not os.path.exists(csv_path):
+        return jsonify([])
+
+    try:
+        df = pd.read_csv(csv_path, encoding="utf-8")
+        df = df.where(pd.notna(df), other=None)
+        rows = df.to_dict(orient="records")
+        return jsonify(rows)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/map")
