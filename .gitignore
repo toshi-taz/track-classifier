@@ -206,3 +206,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .env
+
+# Project-specific
+uploads/
+historial_clasificaciones.csv
+resultado_clasificacion.json
