@@ -1100,11 +1100,18 @@
     resultCard.classList.remove('visible');
 
     try {
-      const fd = new FormData();
-      fd.append('image', selectedFile);
-      fd.append('mode', selectedMode);
+      const b64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(selectedFile);
+      });
 
-      const res  = await fetch('/classify', { method: 'POST', body: fd });
+      const res  = await fetch('/classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: b64, mode: selectedMode }),
+      });
       const data = await res.json();
 
       if (!res.ok) { showError(data.error || 'Error desconocido'); return; }
