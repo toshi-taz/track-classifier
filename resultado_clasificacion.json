@@ -1,0 +1,19 @@
+{
+  "species": "Loggerhead sea turtle",
+  "scientific_name": "Caretta caretta",
+  "confidence": 85,
+  "measurements": {
+    "track_width_cm": 85,
+    "stride_length_cm": 75,
+    "pattern": "alternating"
+  },
+  "key_features": [
+    "Alternating front flipper impressions, indicating individual flippers moving independently.",
+    "Prominent and continuous central body drag mark from the plastron.",
+    "Track width estimated to be in the range of 70-100 cm, characteristic of a moderately large sea turtle.",
+    "Flipper impressions show distinct, somewhat ridged or 'V-shaped' edges, possibly from the scutes or powerful claws."
+  ],
+  "conservation_status": "Endangered",
+  "field_notes": "The tracks originate from the ocean and proceed up the sandy beach, suggesting an emergence event, likely for nesting. The clarity and depth of the impressions indicate recent activity, possibly within the last tide cycle or overnight. The sand appears undisturbed by other human or animal activity around the tracks. There is some sargassum seaweed present along the high tide line that the turtle had to traverse.",
+  "recommendation": "Further investigation is recommended to confirm the presence of a nest. If a nest is found, it should be marked, documented, and protected from disturbance, artificial light, and predation. Data on the nesting event (time, date, location) should be recorded for conservation efforts. Beachgoers should be advised to avoid disturbing the area."
+}
