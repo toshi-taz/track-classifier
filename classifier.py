@@ -5,14 +5,18 @@ import os
 import json
 import argparse
 import sys
+import csv
 from PIL import Image
 import pathlib
+from datetime import datetime
 
 load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 from prompts.species import TURTLE_PROMPT, GENERAL_WILDLIFE_PROMPT
+
+HISTORIAL_FILE = "historial_clasificaciones.csv"
 
 def cargar_imagen(path):
     if not os.path.exists(path):
@@ -53,6 +57,28 @@ def clasificar(image_path, mode="turtle"):
 
     return json.loads(text)
 
+def guardar_historial(image_path, result, mode):
+    """Guarda la clasificación en el historial CSV."""
+    file_exists = os.path.exists(HISTORIAL_FILE)
+    with open(HISTORIAL_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "imagen", "modo", "especie", "nombre_cientifico",
+                           "confianza", "ancho_rastro_cm", "estado_conservacion", "notas"])
+        m = result.get("measurements", {})
+        writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            os.path.basename(image_path),
+            mode,
+            result.get("species", "N/A"),
+            result.get("scientific_name", "N/A"),
+            result.get("confidence", 0),
+            m.get("track_width_cm", "N/A") if mode == "turtle" else "N/A",
+            result.get("conservation_status", "N/A"),
+            result.get("field_notes", "N/A")[:100]
+        ])
+    print(f"📊 Guardado en historial: {HISTORIAL_FILE}")
+
 def mostrar_resultado(result, mode="turtle"):
     print("=" * 55)
     print("🐢 WILDLIFE TRACK CLASSIFIER — Resultado")
@@ -92,22 +118,68 @@ def mostrar_resultado(result, mode="turtle"):
         json.dump(result, f, indent=2, ensure_ascii=False)
     print(f"\n💾 Resultado guardado en {output_file}")
 
+def modo_interactivo():
+    """Menú interactivo en terminal."""
+    print("\n" + "=" * 55)
+    print("🐢 WILDLIFE TRACK CLASSIFIER")
+    print("   Herramienta de identificación de rastros con IA")
+    print("=" * 55)
+
+    while True:
+        print("\n¿Qué quieres hacer?")
+        print("  [1] Clasificar una imagen")
+        print("  [2] Ver historial de clasificaciones")
+        print("  [3] Salir")
+        opcion = input("\n→ Elige una opción: ").strip()
+
+        if opcion == "1":
+            image_path = input("→ Ruta de la imagen: ").strip()
+            print("\n→ Modo:")
+            print("  [1] Tortugas marinas")
+            print("  [2] Fauna general")
+            modo_opcion = input("→ Elige modo: ").strip()
+            mode = "turtle" if modo_opcion == "1" else "wildlife"
+
+            try:
+                result = clasificar(image_path, mode)
+                mostrar_resultado(result, mode)
+                guardar_historial(image_path, result, mode)
+            except Exception as e:
+                print(f"❌ Error: {e}")
+
+        elif opcion == "2":
+            if not os.path.exists(HISTORIAL_FILE):
+                print("📭 Sin clasificaciones previas.")
+            else:
+                print(f"\n📊 Historial — {HISTORIAL_FILE}\n")
+                with open(HISTORIAL_FILE, "r", encoding="utf-8") as f:
+                    print(f.read())
+
+        elif opcion == "3":
+            print("\n👋 Hasta luego.\n")
+            break
+        else:
+            print("❌ Opción no válida.")
+
 def main():
     parser = argparse.ArgumentParser(
-        description="🐢 Wildlife Track Classifier — Identificación de rastros con IA"
+        description="🐢 Wildlife Track Classifier"
     )
-    parser.add_argument("--image", required=True, help="Ruta a la imagen del rastro")
-    parser.add_argument("--mode", choices=["turtle", "wildlife"], default="turtle",
-                        help="Modo de clasificación (default: turtle)")
+    parser.add_argument("--image", help="Ruta a la imagen del rastro")
+    parser.add_argument("--mode", choices=["turtle", "wildlife"], default="turtle")
     args = parser.parse_args()
 
-    try:
-        result = clasificar(args.image, args.mode)
-        mostrar_resultado(result, args.mode)
-    except json.JSONDecodeError:
-        print("❌ Error: respuesta no es JSON válido")
-    except Exception as e:
-        print(f"❌ Error inesperado: {e}")
+    if args.image:
+        try:
+            result = clasificar(args.image, args.mode)
+            mostrar_resultado(result, args.mode)
+            guardar_historial(args.image, result, args.mode)
+        except json.JSONDecodeError:
+            print("❌ Error: respuesta no es JSON válido")
+        except Exception as e:
+            print(f"❌ Error inesperado: {e}")
+    else:
+        modo_interactivo()
 
 if __name__ == "__main__":
     main()

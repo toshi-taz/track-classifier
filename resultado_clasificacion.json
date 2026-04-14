@@ -1,19 +1,19 @@
 {
-  "species": "Loggerhead sea turtle",
-  "scientific_name": "Caretta caretta",
-  "confidence": 85,
+  "species": "Green sea turtle",
+  "scientific_name": "Chelonia mydas",
+  "confidence": 95,
   "measurements": {
-    "track_width_cm": 85,
-    "stride_length_cm": 75,
-    "pattern": "alternating"
+    "track_width_cm": 100,
+    "stride_length_cm": 90,
+    "pattern": "simultaneous"
   },
   "key_features": [
-    "Alternating front flipper impressions, indicating individual flippers moving independently.",
-    "Prominent and continuous central body drag mark from the plastron.",
-    "Track width estimated to be in the range of 70-100 cm, characteristic of a moderately large sea turtle.",
-    "Flipper impressions show distinct, somewhat ridged or 'V-shaped' edges, possibly from the scutes or powerful claws."
+    "Simultaneous front flipper impressions",
+    "Symmetrical track pattern",
+    "Distinct, relatively smooth-edged central body drag mark",
+    "Wide track width, consistent with large sea turtle species"
   ],
   "conservation_status": "Endangered",
-  "field_notes": "The tracks originate from the ocean and proceed up the sandy beach, suggesting an emergence event, likely for nesting. The clarity and depth of the impressions indicate recent activity, possibly within the last tide cycle or overnight. The sand appears undisturbed by other human or animal activity around the tracks. There is some sargassum seaweed present along the high tide line that the turtle had to traverse.",
-  "recommendation": "Further investigation is recommended to confirm the presence of a nest. If a nest is found, it should be marked, documented, and protected from disturbance, artificial light, and predation. Data on the nesting event (time, date, location) should be recorded for conservation efforts. Beachgoers should be advised to avoid disturbing the area."
+  "field_notes": "The tracks indicate a large sea turtle came ashore and returned to the ocean. The pattern of the flipper marks is distinctly simultaneous, meaning both front flippers moved together, creating parallel impressions. A clear, somewhat smooth and wide central drag mark from the turtle's body (plastron) is visible between the flipper tracks. This combination is characteristic of a green sea turtle. There is some seaweed (sargassum) deposited along the high tide line, but the tracks are clear and undisturbed in the immediate area. The tracks appear fresh given their clarity and definition in the sand.",
+  "recommendation": "Monitor the area for signs of nesting activity, such as a disturbed area where a nest may have been dug. If a nest is identified, ensure it is marked and protected from disturbance. Report the track sighting and any potential nesting activity to local wildlife authorities or a sea turtle conservation organization to contribute to monitoring efforts and ensure appropriate protection measures are taken, especially during nesting season."
 }
