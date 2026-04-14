@@ -80,6 +80,36 @@ def classify():
             os.remove(tmp_path)
 
 
+@app.route("/map")
+def map_view():
+    """Renderiza un mapa Leaflet con marcadores de clasificaciones."""
+    import pandas as pd
+
+    csv_path = "historial_clasificaciones.csv"
+    if not os.path.exists(csv_path):
+        return render_template("map.html", markers=[])
+
+    try:
+        df = pd.read_csv(csv_path, encoding="utf-8")
+        df = df.dropna(subset=["latitude", "longitude"])
+
+        markers = []
+        for _, row in df.iterrows():
+            markers.append({
+                "latitude": row["latitude"],
+                "longitude": row["longitude"],
+                "species": row["especie"],
+                "confidence": float(row["confianza"]) if pd.notna(row["confianza"]) else 0,
+                "timestamp": row["timestamp"],
+                "mode": row["modo"],
+                "scientific_name": row["nombre_cientifico"]
+            })
+
+        return render_template("map.html", markers=markers)
+    except Exception as e:
+        return render_template("map.html", markers=[], error=str(e))
+
+
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
