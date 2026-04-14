@@ -36,6 +36,7 @@ python app.py
 
 ## Uso CLI (modo original)
 ```bash
+
 python classifier.py --image foto.jpg --mode turtle
 python classifier.py --image foto.jpg --mode wildlife
 ```
