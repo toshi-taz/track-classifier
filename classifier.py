@@ -5,48 +5,17 @@ import os
 import json
 import argparse
 import sys
-import csv
 from PIL import Image
 import pathlib
 from datetime import datetime
 from gps_extractor import extract_gps
+from database import guardar_registro
 
 load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 from prompts.species import TURTLE_PROMPT, GENERAL_WILDLIFE_PROMPT
-
-HISTORIAL_FILE = "historial_clasificaciones.csv"
-
-FIELDNAMES = [
-    "timestamp", "especie", "nombre_cientifico", "confianza",
-    "modo", "latitude", "longitude", "estado_conservacion", "accion_inmediata"
-]
-
-
-def _migrate_historial():
-    """Ensure the CSV has the expected columns, migrating old-format files."""
-    if not os.path.exists(HISTORIAL_FILE):
-        return
-    try:
-        import pandas as pd
-        df = pd.read_csv(HISTORIAL_FILE, encoding="utf-8")
-        needs_migration = any(col not in df.columns for col in FIELDNAMES)
-        if not needs_migration:
-            return
-        # Map old column names
-        if "modo" not in df.columns and "mode" in df.columns:
-            df.rename(columns={"mode": "modo"}, inplace=True)
-        # Add missing columns as empty strings
-        for col in FIELDNAMES:
-            if col not in df.columns:
-                df[col] = ""
-        df = df[FIELDNAMES]
-        df.to_csv(HISTORIAL_FILE, index=False, encoding="utf-8")
-        print(f"✅ Historial migrado al nuevo esquema ({HISTORIAL_FILE})")
-    except Exception as e:
-        print(f"⚠️ No se pudo migrar el historial: {e}", file=sys.stderr)
 
 def cargar_imagen(path):
     if not os.path.exists(path):
@@ -88,15 +57,11 @@ def clasificar(image_path, mode="turtle"):
     return json.loads(text)
 
 def guardar_historial(image_path, result, mode, lat=None, lon=None):
-    """Save classification to CSV history.
+    """Save classification to SQLite (CSV kept as read-only backup).
 
     lat/lon: resolved coordinates (EXIF or manual). If both are None and the
     caller is the CLI, we attempt EXIF extraction from image_path.
     """
-    _migrate_historial()
-
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-
     # CLI path: caller didn't resolve GPS yet
     if lat is None and lon is None:
         try:
@@ -106,23 +71,8 @@ def guardar_historial(image_path, result, mode, lat=None, lon=None):
         except Exception:
             pass
 
-    file_exists = os.path.exists(HISTORIAL_FILE)
-    with open(HISTORIAL_FILE, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow({
-            "timestamp": timestamp,
-            "especie": result.get("species", ""),
-            "nombre_cientifico": result.get("scientific_name", ""),
-            "confianza": result.get("confidence", 0),
-            "modo": mode,
-            "latitude": lat if lat is not None else "",
-            "longitude": lon if lon is not None else "",
-            "estado_conservacion": result.get("conservation_status", ""),
-            "accion_inmediata": result.get("immediate_action", ""),
-        })
-    print(f"💾 Historial guardado en {HISTORIAL_FILE}")
+    guardar_registro(result, mode, lat=lat, lon=lon)
+    print("💾 Registro guardado en base de datos SQLite")
 
 
 def mostrar_resultado(result, mode="turtle"):

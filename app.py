@@ -7,11 +7,15 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from gps_extractor import extract_gps
+from database import init_db, obtener_historial, obtener_historial_con_gps
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+# Initialize SQLite DB (and migrate CSV) at startup.
+init_db()
 
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -120,17 +124,9 @@ def classify():
 
 @app.route("/history")
 def history():
-    """Devuelve el historial de clasificaciones como JSON."""
-    import pandas as pd
-
-    csv_path = "historial_clasificaciones.csv"
-    if not os.path.exists(csv_path):
-        return jsonify([])
-
+    """Devuelve el historial de clasificaciones como JSON (lee de SQLite)."""
     try:
-        df = pd.read_csv(csv_path, encoding="utf-8")
-        df = df.where(pd.notna(df), other=None)
-        rows = df.to_dict(orient="records")
+        rows = obtener_historial()
         return jsonify(rows)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -138,30 +134,22 @@ def history():
 
 @app.route("/map")
 def map_view():
-    """Renderiza un mapa Leaflet con marcadores de clasificaciones."""
-    import pandas as pd
-
-    csv_path = "historial_clasificaciones.csv"
-    if not os.path.exists(csv_path):
-        return render_template("map.html", markers=[])
-
+    """Renderiza un mapa Leaflet con marcadores de clasificaciones (lee de SQLite)."""
     try:
-        df = pd.read_csv(csv_path, encoding="utf-8")
-        df = df.dropna(subset=["latitude", "longitude"])
-
-        markers = []
-        for _, row in df.iterrows():
-            markers.append({
-                "latitude": float(row["latitude"]),
-                "longitude": float(row["longitude"]),
+        rows = obtener_historial_con_gps()
+        markers = [
+            {
+                "latitude": row["latitude"],
+                "longitude": row["longitude"],
                 "species": row.get("especie", ""),
-                "confidence": float(row["confianza"]) if pd.notna(row.get("confianza")) else 0,
+                "confidence": row["confianza"] or 0,
                 "timestamp": row.get("timestamp", ""),
                 "mode": row.get("modo", ""),
                 "scientific_name": row.get("nombre_cientifico", ""),
-                "immediate_action": row.get("accion_inmediata", "") or "",
-            })
-
+                "immediate_action": row.get("accion_inmediata") or "",
+            }
+            for row in rows
+        ]
         return render_template("map.html", markers=markers)
     except Exception as e:
         return render_template("map.html", markers=[], error=str(e))
