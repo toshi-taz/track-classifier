@@ -5,3 +5,4 @@ flask
 flask-cors
 gunicorn
 exifread
+psycopg2-binary

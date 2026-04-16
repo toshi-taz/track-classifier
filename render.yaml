@@ -1,3 +1,9 @@
+databases:
+  - name: track-classifier-db
+    plan: free
+    databaseName: track_classifier
+    user: track_classifier
+
 services:
   - type: web
     name: wildlife-track-classifier
@@ -7,4 +13,10 @@ services:
     plan: free
     envVars:
       - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: track-classifier-db
+          property: connectionString
+      - key: ALLOWED_ORIGINS
         sync: false
