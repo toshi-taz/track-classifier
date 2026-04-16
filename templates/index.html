@@ -879,9 +879,12 @@
     <span class="nav-logo-icon">🐢</span>
     <span class="nav-logo-text">Track Classifier</span>
   </div>
-  <div class="nav-badge">
-    <span class="nav-badge-dot"></span>
-    Gemini 2.5 Flash
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="/map" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-sec);text-decoration:none;padding:5px 12px;border:1px solid rgba(124,186,110,0.15);border-radius:8px;transition:all 0.2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='rgba(124,186,110,0.35)'" onmouseout="this.style.color='var(--text-sec)';this.style.borderColor='rgba(124,186,110,0.15)'">🗺 Mapa</a>
+    <div class="nav-badge">
+      <span class="nav-badge-dot"></span>
+      Gemini 2.5 Flash
+    </div>
   </div>
 </nav>
 
@@ -942,6 +945,30 @@
     <div class="mode-wrap">
       <button class="mode-btn-primary mode-active" data-mode="turtle">🐢 Tortugas marinas</button>
       <button class="mode-btn-secondary" data-mode="wildlife">🐾 Fauna general (modo secundario)</button>
+    </div>
+
+    <!-- GPS coordinates -->
+    <div class="mode-wrap" style="padding-top:0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">📍 Coordenadas GPS</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);padding:2px 7px;border:1px solid rgba(124,186,110,0.1);border-radius:8px;">opcional — se extrae del EXIF si existe</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Latitud</label>
+          <input id="gps-lat" type="number" step="any" placeholder="ej. 19.4326"
+            style="width:100%;padding:9px 12px;background:rgba(5,10,5,0.8);border:1px solid rgba(124,186,110,0.12);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;"
+            onfocus="this.style.borderColor='rgba(124,186,110,0.4)'" onblur="this.style.borderColor='rgba(124,186,110,0.12)'" />
+        </div>
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Longitud</label>
+          <input id="gps-lon" type="number" step="any" placeholder="ej. -99.1332"
+            style="width:100%;padding:9px 12px;background:rgba(5,10,5,0.8);border:1px solid rgba(124,186,110,0.12);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;"
+            onfocus="this.style.borderColor='rgba(124,186,110,0.4)'" onblur="this.style.borderColor='rgba(124,186,110,0.12)'" />
+        </div>
+      </div>
+      <!-- GPS status (shown after analysis) -->
+      <div id="gps-status" style="display:none;margin-top:8px;padding:7px 12px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;"></div>
     </div>
 
     <!-- Analyse button -->
@@ -1121,6 +1148,9 @@
   const histCount    = document.getElementById('hist-count');
   const refreshBtn   = document.getElementById('refresh-btn');
   const modeIndicator= document.getElementById('mode-indicator');
+  const gpsLat       = document.getElementById('gps-lat');
+  const gpsLon       = document.getElementById('gps-lon');
+  const gpsStatus    = document.getElementById('gps-status');
 
   /* ── File handling ──────────────────────────────────────── */
   function handleFile(file) {
@@ -1142,6 +1172,7 @@
     dropZone.parentElement.style.display = 'block';
     fileInput.value = '';
     analyzeBtn.disabled = true;
+    gpsStatus.style.display = 'none';
   }
 
   /* ── Drag & drop ────────────────────────────────────────── */
@@ -1207,16 +1238,25 @@
         reader.readAsDataURL(selectedFile);
       });
 
+      const body = { image: b64, mode: selectedMode };
+      const latVal = parseFloat(gpsLat.value);
+      const lonVal = parseFloat(gpsLon.value);
+      if (!isNaN(latVal) && !isNaN(lonVal)) {
+        body.latitude  = latVal;
+        body.longitude = lonVal;
+      }
+
       const res  = await fetch('/classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: b64, mode: selectedMode }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
 
       if (!res.ok) { showError(data.error || 'Error desconocido'); return; }
 
       renderResult(data);
+      showGpsStatus(data);
       loadHistory();
       setTimeout(() => resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
     } catch (err) {
@@ -1225,6 +1265,30 @@
       setLoading(false);
     }
   });
+
+  /* ── GPS status ─────────────────────────────────────────── */
+  function showGpsStatus(d) {
+    gpsStatus.style.display = 'block';
+    if (d.gps_source === 'exif') {
+      gpsStatus.style.background = 'rgba(124,186,110,0.07)';
+      gpsStatus.style.border = '1px solid rgba(124,186,110,0.2)';
+      gpsStatus.style.color = 'var(--accent)';
+      gpsStatus.textContent = `📡 GPS del EXIF: ${d.latitude.toFixed(5)}, ${d.longitude.toFixed(5)}`;
+      // Auto-fill inputs with EXIF coords
+      gpsLat.value = d.latitude;
+      gpsLon.value = d.longitude;
+    } else if (d.gps_source === 'manual') {
+      gpsStatus.style.background = 'rgba(45,212,191,0.06)';
+      gpsStatus.style.border = '1px solid rgba(45,212,191,0.2)';
+      gpsStatus.style.color = '#2DD4BF';
+      gpsStatus.textContent = `📍 GPS manual: ${d.latitude.toFixed(5)}, ${d.longitude.toFixed(5)}`;
+    } else {
+      gpsStatus.style.background = 'rgba(74,90,74,0.15)';
+      gpsStatus.style.border = '1px solid rgba(74,90,74,0.3)';
+      gpsStatus.style.color = 'var(--muted)';
+      gpsStatus.textContent = '— Sin coordenadas GPS (no aparecerá en el mapa)';
+    }
+  }
 
   /* ── Render result ──────────────────────────────────────── */
   function renderResult(d) {

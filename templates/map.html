@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa de Rastros · Track Classifier</title>
+
+  <!-- Leaflet CSS (CDN; cached after first load for offline use) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #050A05;
+      --surface:  rgba(12,20,12,0.92);
+      --text:     #F5F0E8;
+      --text-sec: #8A9E8A;
+      --muted:    #4A5A4A;
+      --accent:   #7CBA6E;
+      --border:   rgba(124,186,110,0.18);
+      --error:    #C4614A;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      background: rgba(5,10,5,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(124,186,110,0.12);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .nav-back {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; color: var(--text-sec);
+      text-decoration: none;
+      padding: 6px 12px;
+      border: 1px solid rgba(124,186,110,0.15);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-back:hover { color: var(--text); border-color: rgba(124,186,110,0.35); }
+    .nav-title {
+      font-size: 16px; font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .nav-count {
+      margin-left: auto;
+      font-size: 11px; font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      padding: 4px 10px;
+      border: 1px solid rgba(124,186,110,0.1);
+      border-radius: 10px;
+    }
+
+    /* ── Map container ── */
+    #map {
+      position: fixed;
+      top: 53px; left: 0; right: 0; bottom: 0;
+    }
+
+    /* ── Offline warning ── */
+    #offline-warn {
+      display: none;
+      position: fixed;
+      top: 66px; left: 50%; transform: translateX(-50%);
+      z-index: 900;
+      background: rgba(196,97,74,0.12);
+      border: 1px solid rgba(196,97,74,0.4);
+      color: #E8846A;
+      font-size: 12px; font-family: monospace;
+      padding: 8px 16px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* ── Empty state ── */
+    #empty-overlay {
+      display: none;
+      position: fixed;
+      top: 53px; left: 0; right: 0; bottom: 0;
+      z-index: 800;
+      background: var(--bg);
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+      text-align: center;
+    }
+    #empty-overlay .icon { font-size: 48px; opacity: 0.3; }
+    #empty-overlay p { color: var(--muted); font-size: 14px; }
+
+    /* ── Leaflet custom styles ── */
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+      color: var(--text) !important;
+      padding: 0 !important;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      width: auto !important;
+      min-width: 200px;
+      max-width: 280px;
+    }
+    .leaflet-popup-tip {
+      background: rgba(12,20,12,0.92) !important;
+    }
+    .leaflet-popup-close-button {
+      color: var(--muted) !important;
+      font-size: 18px !important;
+      padding: 6px 8px !important;
+    }
+    .leaflet-popup-close-button:hover { color: var(--text) !important; }
+
+    /* Leaflet layer control */
+    .leaflet-control-layers {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 10px !important;
+      color: var(--text-sec) !important;
+    }
+    .leaflet-control-layers-toggle {
+      background-color: rgba(12,20,12,0.9) !important;
+    }
+    .leaflet-bar a {
+      background: rgba(12,20,12,0.9) !important;
+      color: var(--text-sec) !important;
+      border-color: rgba(124,186,110,0.2) !important;
+    }
+    .leaflet-bar a:hover { color: var(--text) !important; }
+
+    /* Popup inner */
+    .popup-inner { padding: 14px 16px; }
+    .popup-species {
+      font-size: 16px; font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    .popup-sci {
+      font-size: 12px; font-style: italic;
+      color: var(--text-sec);
+      margin-bottom: 10px;
+    }
+    .popup-meta {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .popup-badge {
+      font-size: 10px; font-family: monospace;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(124,186,110,0.25);
+      color: var(--accent);
+      background: rgba(124,186,110,0.07);
+    }
+    .popup-badge.teal {
+      border-color: rgba(45,212,191,0.3);
+      color: #2DD4BF;
+      background: rgba(45,212,191,0.07);
+    }
+    .popup-date {
+      font-size: 11px; font-family: monospace;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .popup-coords {
+      font-size: 10px; font-family: monospace;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .popup-action {
+      font-size: 12px; font-weight: 600;
+      color: #E8846A;
+      background: rgba(196,97,74,0.08);
+      border-left: 3px solid rgba(196,97,74,0.5);
+      padding: 8px 10px;
+      border-radius: 0 6px 6px 0;
+      line-height: 1.4;
+    }
+    .popup-action-label {
+      font-size: 9px; font-family: monospace;
+      color: #C4614A;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-back" href="/">← Volver</a>
+  <span class="nav-title">🗺 Mapa de Rastros</span>
+  <span class="nav-count" id="count-badge">0 registros</span>
+</nav>
+
+<!-- Offline warning -->
+<div id="offline-warn">⚠ Tiles sin conexión — usando caché del navegador</div>
+
+<!-- Empty state -->
+<div id="empty-overlay">
+  <span class="icon">🏖️</span>
+  <p>Sin registros con coordenadas GPS aún.</p>
+  <p style="font-size:12px;color:#3A4A3A;">Clasifica imágenes con GPS en EXIF o ingresa coords manualmente.</p>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Leaflet JS (CDN) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GqM=" crossorigin=""></script>
+
+<script>
+'use strict';
+
+const RAW_MARKERS = {{ markers | tojson }};
+
+/* ── Init map ── */
+const map = L.map('map', { zoomControl: true });
+
+/* ── Tile layers ── */
+const darkTiles = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }
+);
+
+const osmTiles = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+    maxZoom: 19,
+  }
+);
+
+darkTiles.addTo(map);
+
+/* ── Graceful degradation: detect tile failures ── */
+let tileErrors = 0;
+let offlineShown = false;
+darkTiles.on('tileerror', () => {
+  tileErrors++;
+  if (tileErrors >= 3 && !offlineShown) {
+    offlineShown = true;
+    document.getElementById('offline-warn').style.display = 'block';
+  }
+});
+
+/* ── Layer control ── */
+L.control.layers(
+  { 'Oscuro (CartoDB)': darkTiles, 'OpenStreetMap': osmTiles },
+  {},
+  { position: 'topright' }
+).addTo(map);
+
+/* ── Markers ── */
+const group = L.featureGroup();
+
+RAW_MARKERS.forEach(m => {
+  const isTurtle = m.mode === 'turtle';
+  const color = isTurtle ? '#7CBA6E' : '#2DD4BF';
+  const conf = m.confidence || 0;
+
+  const circle = L.circleMarker([m.latitude, m.longitude], {
+    radius: 9,
+    fillColor: color,
+    color: '#050A05',
+    weight: 2,
+    fillOpacity: 0.88,
+  });
+
+  const modeBadge = isTurtle
+    ? '<span class="popup-badge">🐢 TORTUGAS</span>'
+    : '<span class="popup-badge teal">🐾 FAUNA</span>';
+
+  const confColor = conf >= 75 ? '#7CBA6E' : conf >= 50 ? '#C4A04A' : '#C4614A';
+  const confBadge = `<span class="popup-badge" style="color:${confColor};border-color:${confColor}40;">${conf}%</span>`;
+
+  const actionHtml = m.immediate_action
+    ? `<div class="popup-action-label">Acción inmediata</div>
+       <div class="popup-action">${escapeHtml(m.immediate_action)}</div>`
+    : '';
+
+  circle.bindPopup(`
+    <div class="popup-inner">
+      <div class="popup-species">${escapeHtml(m.species || '—')}</div>
+      <div class="popup-sci">${escapeHtml(m.scientific_name || '')}</div>
+      <div class="popup-meta">${modeBadge}${confBadge}</div>
+      <div class="popup-date">📅 ${escapeHtml(m.timestamp || '')}</div>
+      <div class="popup-coords">📍 ${m.latitude.toFixed(5)}, ${m.longitude.toFixed(5)}</div>
+      ${actionHtml}
+    </div>
+  `, { maxWidth: 300 });
+
+  group.addLayer(circle);
+});
+
+group.addTo(map);
+
+/* ── Fit bounds or default view ── */
+const countBadge = document.getElementById('count-badge');
+if (RAW_MARKERS.length > 0) {
+  countBadge.textContent = RAW_MARKERS.length + ' registro' + (RAW_MARKERS.length !== 1 ? 's' : '');
+  if (RAW_MARKERS.length === 1) {
+    map.setView([RAW_MARKERS[0].latitude, RAW_MARKERS[0].longitude], 13);
+  } else {
+    map.fitBounds(group.getBounds().pad(0.25));
+  }
+} else {
+  countBadge.textContent = '0 registros';
+  // Default: Gulf of Mexico / Pacific coast of Mexico
+  map.setView([20.0, -100.0], 6);
+  document.getElementById('empty-overlay').style.display = 'flex';
+}
+
+/* ── Utility ── */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
