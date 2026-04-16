@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from gps_extractor import extract_gps
@@ -35,6 +35,15 @@ def _decode_image(b64_data: str) -> tuple[bytes, str]:
 
     suffix = MIME_TO_EXT.get(mime, ".jpg")
     return base64.b64decode(b64_data), suffix
+
+
+@app.route("/sw.js")
+def service_worker():
+    """Serve SW from root so its scope covers the entire origin."""
+    response = send_from_directory("static", "sw.js")
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.route("/")

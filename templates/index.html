@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wildlife Track Classifier</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="theme-color" content="#050A05" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Track Classifier" />
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+  <meta name="msapplication-TileImage" content="/static/icons/icon-192.png" />
+  <meta name="msapplication-TileColor" content="#050A05" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -834,6 +846,24 @@
       color: var(--muted);
     }
 
+    /* ── Offline banner ──────────────────────────────────── */
+    #offline-banner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      background: rgba(196,97,74,0.12);
+      border-bottom: 1px solid rgba(196,97,74,0.35);
+      color: #E8846A;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      text-align: center;
+      padding: 7px 16px;
+      backdrop-filter: blur(8px);
+      letter-spacing: 0.03em;
+    }
+    #offline-banner.visible { display: block; }
+
     /* ── Footer ───────────────────────────────────────────── */
     footer {
       padding: 24px 40px;
@@ -865,6 +895,11 @@
   </style>
 </head>
 <body>
+
+<!-- Offline banner -->
+<div id="offline-banner" role="status" aria-live="polite">
+  ⚡ Sin conexión — el historial está disponible en modo offline · Las clasificaciones requieren internet
+</div>
 
 <!-- Aurora -->
 <div class="aurora" aria-hidden="true">
@@ -1253,7 +1288,11 @@
       });
       const data = await res.json();
 
-      if (!res.ok) { showError(data.error || 'Error desconocido'); return; }
+      if (!res.ok) {
+        const msg = data.error || 'Error desconocido';
+        showError(msg);
+        return;
+      }
 
       renderResult(data);
       showGpsStatus(data);
@@ -1483,6 +1522,30 @@
       countUp(document.getElementById('s2'), 95, 1400, '%');
     }, 600);
   });
+  /* ── Offline / online status ───────────────────────────── */
+  const offlineBanner = document.getElementById('offline-banner');
+
+  function updateOnlineStatus() {
+    if (navigator.onLine) {
+      offlineBanner.classList.remove('visible');
+    } else {
+      offlineBanner.classList.add('visible');
+    }
+  }
+
+  window.addEventListener('online',  updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus(); // run once on load
+</script>
+
+<!-- Service Worker registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .catch(err => console.warn('[SW] Registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html>
