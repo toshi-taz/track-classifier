@@ -1,9 +1,12 @@
 import base64
 import json
+import logging
 import os
+import secrets
 import tempfile
+from functools import wraps
 
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from gps_extractor import extract_gps
@@ -11,11 +14,21 @@ from database import init_db, obtener_historial, obtener_historial_con_gps
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-CORS(app)
+
+# ── CORS: restrict to configured origins (default: localhost only) ──────────
+_raw_origins = os.environ.get(
+    "ALLOWED_ORIGINS", "http://localhost:5000,http://127.0.0.1:5000"
+)
+CORS(app, origins=[o.strip() for o in _raw_origins.split(",")])
 
 # Initialize SQLite DB (and migrate CSV) at startup.
 init_db()
+
+# ── Upload limits ────────────────────────────────────────────────────────────
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB decoded
 
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -23,6 +36,50 @@ MIME_TO_EXT = {
     "image/webp": ".webp",
     "image/gif": ".gif",
 }
+
+
+# ── Security headers ─────────────────────────────────────────────────────────
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https://unpkg.com "
+        "https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    )
+    return response
+
+
+# ── Optional Basic Auth for sensitive endpoints ──────────────────────────────
+def _check_password(password: str) -> bool:
+    app_password = os.environ.get("APP_PASSWORD", "")
+    if not app_password:
+        return True  # no password configured — open access (dev mode)
+    return secrets.compare_digest(password.encode(), app_password.encode())
+
+
+def require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not os.environ.get("APP_PASSWORD", ""):
+            return f(*args, **kwargs)
+        auth = request.authorization
+        if not auth or not _check_password(auth.password):
+            return Response(
+                "Authentication required.",
+                401,
+                {"WWW-Authenticate": 'Basic realm="Track Classifier"'},
+            )
+        return f(*args, **kwargs)
+    return decorated
 
 
 def _decode_image(b64_data: str) -> tuple[bytes, str]:
@@ -77,6 +134,9 @@ def classify():
     except Exception:
         return jsonify({"error": "Invalid base64 image data"}), 400
 
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        return jsonify({"error": "Image exceeds the maximum allowed size of 10 MB"}), 413
+
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -116,23 +176,27 @@ def classify():
     except json.JSONDecodeError:
         return jsonify({"error": "Gemini returned an invalid response. Please try again."}), 502
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error("classify error: %s", e)
+        return jsonify({"error": "An internal error occurred. Please try again."}), 500
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)
 
 
 @app.route("/history")
+@require_auth
 def history():
     """Devuelve el historial de clasificaciones como JSON (lee de SQLite)."""
     try:
         rows = obtener_historial()
         return jsonify(rows)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error("history error: %s", e)
+        return jsonify({"error": "Could not retrieve history."}), 500
 
 
 @app.route("/map")
+@require_auth
 def map_view():
     """Renderiza un mapa Leaflet con marcadores de clasificaciones (lee de SQLite)."""
     try:
@@ -152,7 +216,8 @@ def map_view():
         ]
         return render_template("map.html", markers=markers)
     except Exception as e:
-        return render_template("map.html", markers=[], error=str(e))
+        logger.error("map error: %s", e)
+        return render_template("map.html", markers=[])
 
 
 @app.route("/health")
@@ -162,4 +227,4 @@ def health():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)
