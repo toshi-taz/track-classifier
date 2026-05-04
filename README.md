@@ -1,6 +1,7 @@
 # Wildlife Track Classifier 🐢
 
-> Herramienta de IA de campo para identificación de rastros de fauna marina.  
+> Herramienta de IA de campo para identificación de rastros de fauna marina.
+> Web app for wildlife track identification using Gemini Vision AI
 > **Live:** https://track-classifier.onrender.com
 
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
