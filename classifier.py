@@ -161,12 +161,14 @@ def modo_interactivo():
                 print(f"❌ Error: {e}")
 
         elif opcion == "2":
-            if not os.path.exists(HISTORIAL_FILE):
+            from database import obtener_historial
+            registros = obtener_historial()
+            if not registros:
                 print("📭 Sin clasificaciones previas.")
             else:
-                print(f"\n📊 Historial — {HISTORIAL_FILE}\n")
-                with open(HISTORIAL_FILE, "r", encoding="utf-8") as f:
-                    print(f.read())
+                print(f"\n📊 Historial — {len(registros)} registro(s)\n")
+                for r in registros:
+                    print(f"  {r['timestamp']} | {r['especie']} | {r['confianza']}% | {r['modo']}")
 
         elif opcion == "3":
             print("\n👋 Hasta luego.\n")

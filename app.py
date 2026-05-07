@@ -196,7 +196,6 @@ def history():
 
 
 @app.route("/map")
-@require_auth
 def map_view():
     """Renderiza un mapa Leaflet con marcadores de clasificaciones (lee de SQLite)."""
     try:

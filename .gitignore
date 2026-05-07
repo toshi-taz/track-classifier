@@ -210,25 +210,11 @@ __marimo__/
 # Project-specific
 uploads/
 historial_clasificaciones.csv
-resultado_clasificacion.json
-env
-env
-env
-
-# Archivos basura acumulados
-*.bak
-*_CLEAN.py
 historial_clasificaciones.db
 resultado_clasificacion.json
-*.db
-*.sqlite
-*.sqlite3
-
-# Archivos basura acumulados
+.idea/
 *.bak
 *_CLEAN.py
-historial_clasificaciones.db
-resultado_clasificacion.json
 *.db
 *.sqlite
 *.sqlite3
