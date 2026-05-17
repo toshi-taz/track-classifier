@@ -233,7 +233,31 @@ def classify():
 @app.route("/history")
 @require_auth
 def history():
-    """Devuelve el historial de clasificaciones como JSON (lee de SQLite)."""
+    """Devuelve el historial de clasificaciones como JSON (Supabase o SQLite)."""
+    if _supabase:
+        try:
+            resp = (
+                _supabase.table("classifications")
+                .select("*")
+                .order("id", desc=True)
+                .execute()
+            )
+            rows = [
+                {
+                    "timestamp": row.get("timestamp", ""),
+                    "especie": row.get("species", ""),
+                    "nombre_cientifico": row.get("scientific_name", ""),
+                    "modo": row.get("mode", ""),
+                    "confianza": row.get("confidence") or 0,
+                    "estado_conservacion": row.get("conservation_status", ""),
+                }
+                for row in resp.data
+            ]
+            return jsonify(rows)
+        except Exception as e:
+            logger.error("history supabase error: %s", e)
+            return jsonify({"error": "Could not retrieve history."}), 500
+
     try:
         rows = obtener_historial()
         return jsonify(rows)

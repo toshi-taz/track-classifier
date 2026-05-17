@@ -1551,11 +1551,19 @@
   function renderHistory(rows) {
     histCount.textContent = rows.length;
 
-    /* Update s3 stat */
+    /* Update stats from real data */
+    const s1 = document.getElementById('s1');
+    const s2 = document.getElementById('s2');
     const s3 = document.getElementById('s3');
     if (rows.length > 0) {
+      const uniqueSpecies = new Set(rows.map(r => r.especie).filter(Boolean)).size;
+      const avgConf = Math.round(rows.reduce((sum, r) => sum + (r.confianza || 0), 0) / rows.length);
+      countUp(s1, uniqueSpecies, 1200, '');
+      countUp(s2, avgConf, 1400, '%');
       countUp(s3, rows.length, 800, '');
     } else {
+      s1.textContent = '0';
+      s2.textContent = '0%';
       s3.textContent = '—';
     }
 
@@ -1601,10 +1609,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
     initSyncManager();
-    setTimeout(() => {
-      countUp(document.getElementById('s1'), 7,  1200, '');
-      countUp(document.getElementById('s2'), 95, 1400, '%');
-    }, 600);
   });
   /* ── Offline / online status ───────────────────────────── */
   const offlineBanner = document.getElementById('offline-banner');
