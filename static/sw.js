@@ -1,6 +1,6 @@
 'use strict';
 
-const VER         = 'v2';
+const VER         = 'v3';
 const SHELL_CACHE = `tc-shell-${VER}`;
 const TILES_CACHE = `tc-tiles-${VER}`;
 const CDN_CACHE   = `tc-cdn-${VER}`;
