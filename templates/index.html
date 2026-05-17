@@ -877,6 +877,41 @@
       color: var(--muted);
     }
 
+    /* ── Sync status badge ────────────────────────────────── */
+    .sync-status-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(124,186,110,0.2);
+      color: var(--text-sec);
+      white-space: nowrap;
+      transition: all 0.3s;
+    }
+    .sync-status-badge.offline {
+      color: #E8846A;
+      border-color: rgba(196,97,74,0.3);
+      background: rgba(196,97,74,0.07);
+    }
+    .sync-status-badge.syncing {
+      color: #C4A04A;
+      border-color: rgba(196,160,74,0.3);
+      background: rgba(196,160,74,0.07);
+    }
+
+    /* ── Info box (offline-saved confirmation) ─────────────── */
+    #info-box {
+      display: none;
+      margin: 0 20px 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: rgba(45,212,191,0.07);
+      border: 1px solid rgba(45,212,191,0.25);
+      color: #2DD4BF;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+    }
+
     /* ── Responsive ───────────────────────────────────────── */
     @media (max-width: 640px) {
       nav { padding: 16px; }
@@ -898,7 +933,7 @@
 
 <!-- Offline banner -->
 <div id="offline-banner" role="status" aria-live="polite">
-  ⚡ Sin conexión — el historial está disponible en modo offline · Las clasificaciones requieren internet
+  ⚡ Sin conexión — las clasificaciones se guardan localmente y se suben al recuperar señal
 </div>
 
 <!-- Aurora -->
@@ -916,6 +951,7 @@
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
     <a href="/map" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-sec);text-decoration:none;padding:5px 12px;border:1px solid rgba(124,186,110,0.15);border-radius:8px;transition:all 0.2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='rgba(124,186,110,0.35)'" onmouseout="this.style.color='var(--text-sec)';this.style.borderColor='rgba(124,186,110,0.15)'">🗺 Mapa</a>
+    <span id="sync-status-badge" class="sync-status-badge">🟢 Online</span>
     <div class="nav-badge">
       <span class="nav-badge-dot"></span>
       Gemini 2.5 Flash
@@ -1019,6 +1055,9 @@
 
     <!-- Error -->
     <div id="error-box"></div>
+
+    <!-- Offline-saved confirmation -->
+    <div id="info-box"></div>
   </div>
 
   <!-- ── RESULT CARD ─────────────────────────────────────── -->
@@ -1160,6 +1199,9 @@
   <p>Wildlife Track Classifier · UPIEM–IPN · abatazl2300@alumno.ipn.mx</p>
 </footer>
 
+<script src="/static/offline-queue.js"></script>
+<script src="/static/sync-manager.js"></script>
+
 <script>
   'use strict';
 
@@ -1186,6 +1228,7 @@
   const gpsLat       = document.getElementById('gps-lat');
   const gpsLon       = document.getElementById('gps-lon');
   const gpsStatus    = document.getElementById('gps-status');
+  const infoBox      = document.getElementById('info-box');
 
   /* ── File handling ──────────────────────────────────────── */
   function handleFile(file) {
@@ -1252,8 +1295,16 @@
   function showError(msg) {
     errorBox.textContent = msg;
     errorBox.style.display = 'block';
+    infoBox.style.display = 'none';
   }
   function hideError() { errorBox.style.display = 'none'; }
+
+  function showInfo(msg) {
+    infoBox.textContent = msg;
+    infoBox.style.display = 'block';
+    errorBox.style.display = 'none';
+  }
+  function hideInfo() { infoBox.style.display = 'none'; }
 
   /* ── Classify ───────────────────────────────────────────── */
   analyzeBtn.disabled = true; // disabled until file selected
@@ -1262,6 +1313,7 @@
     if (!selectedFile) { showError('Selecciona una imagen primero.'); return; }
     setLoading(true);
     hideError();
+    hideInfo();
     resultCard.style.display = 'none';
     resultCard.classList.remove('visible');
 
@@ -1273,9 +1325,29 @@
         reader.readAsDataURL(selectedFile);
       });
 
-      const body = { image: b64, mode: selectedMode };
       const latVal = parseFloat(gpsLat.value);
       const lonVal = parseFloat(gpsLon.value);
+
+      // ── Offline branch ────────────────────────────────────
+      if (!navigator.onLine) {
+        await saveOffline(
+          b64,
+          !isNaN(latVal) ? latVal : null,
+          !isNaN(lonVal) ? lonVal : null,
+          selectedMode,
+          ''
+        );
+        showInfo('📴 Sin conexión — guardado localmente. Se subirá cuando haya señal.');
+        await refreshSyncBadge();
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          const reg = await navigator.serviceWorker.ready;
+          reg.sync.register('sync-classifications').catch(() => {});
+        }
+        return;
+      }
+
+      // ── Online branch ─────────────────────────────────────
+      const body = { image: b64, mode: selectedMode };
       if (!isNaN(latVal) && !isNaN(lonVal)) {
         body.latitude  = latVal;
         body.longitude = lonVal;
@@ -1528,6 +1600,7 @@
   /* ── Init ───────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
+    initSyncManager();
     setTimeout(() => {
       countUp(document.getElementById('s1'), 7,  1200, '');
       countUp(document.getElementById('s2'), 95, 1400, '%');
@@ -1549,14 +1622,5 @@
   updateOnlineStatus(); // run once on load
 </script>
 
-<!-- Service Worker registration -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .catch(err => console.warn('[SW] Registration failed:', err));
-    });
-  }
-</script>
 </body>
 </html>

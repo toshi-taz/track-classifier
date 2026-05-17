@@ -38,7 +38,9 @@ def clasificar(image_path, mode="turtle"):
 
     image_bytes = pathlib.Path(image_path).read_bytes()
     ext = pathlib.Path(image_path).suffix.lower()
-    mime = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
+    _MIME_MAP = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+                 ".webp": "image/webp", ".gif": "image/gif"}
+    mime = _MIME_MAP.get(ext, "image/jpeg")
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",

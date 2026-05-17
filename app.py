@@ -4,6 +4,7 @@ import logging
 import os
 import secrets
 import tempfile
+from datetime import datetime
 from functools import wraps
 
 from flask import Flask, request, jsonify, render_template, send_from_directory, Response
@@ -14,7 +15,25 @@ from database import init_db, obtener_historial, obtener_historial_con_gps
 
 load_dotenv()
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ── Supabase client (optional) ───────────────────────────────────────────────
+_supabase = None
+try:
+    from supabase import create_client
+    _sb_url = os.environ.get("SUPABASE_URL", "")
+    _sb_key = os.environ.get("SUPABASE_KEY", "")
+    logger.info("Supabase env — URL=%r  KEY=%r", _sb_url, _sb_key[:12] + "..." if _sb_key else "")
+    if _sb_url and _sb_key:
+        _supabase = create_client(_sb_url, _sb_key)
+        logger.info("Supabase client ready: %s", _supabase is not None)
+    else:
+        logger.warning("Supabase disabled: SUPABASE_URL or SUPABASE_KEY is empty")
+except ImportError:
+    logger.warning("Supabase package not installed — falling back to SQLite")
+except Exception as exc:
+    logger.error("Supabase init failed: %s", exc)
 
 app = Flask(__name__)
 
@@ -51,8 +70,10 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
         "font-src https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https://unpkg.com "
-        "https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; "
-        "connect-src 'self'; "
+        "https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org "
+        "https://server.arcgisonline.com https://*.arcgisonline.com https://*.arcgis.com; "
+        "connect-src 'self' https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com "
+        "https://server.arcgisonline.com https://*.arcgisonline.com https://*.arcgis.com; "
         "frame-ancestors 'none'"
     )
     return response
@@ -82,6 +103,31 @@ def require_auth(f):
     return decorated
 
 
+def _save_to_supabase(result: dict, mode: str, lat, lon) -> None:
+    logger.info("_save_to_supabase called — _supabase=%s", _supabase)
+    if not _supabase:
+        return
+    try:
+        resp = _supabase.table("classifications").insert({
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "species": result.get("species", ""),
+            "scientific_name": result.get("scientific_name", ""),
+            "confidence": result.get("confidence"),
+            "mode": mode,
+            "latitude": lat,
+            "longitude": lon,
+            "gps_source": result.get("gps_source"),
+            "conservation_status": result.get("conservation_status"),
+            "track_condition": result.get("track_condition"),
+            "animal_size_estimate": result.get("animal_size_estimate"),
+            "estimated_nesting_time": result.get("estimated_nesting_time"),
+            "immediate_action": result.get("immediate_action"),
+        }).execute()
+        logger.info("Supabase insert OK — rows returned: %s", len(resp.data) if resp.data else 0)
+    except Exception as e:
+        logger.error("Supabase save error: %s", e)
+
+
 def _decode_image(b64_data: str) -> tuple[bytes, str]:
     """Return (raw bytes, file extension) from a base64 string.
 
@@ -98,9 +144,9 @@ def _decode_image(b64_data: str) -> tuple[bytes, str]:
     return base64.b64decode(b64_data), suffix
 
 
+
 @app.route("/sw.js")
 def service_worker():
-    """Serve SW from root so its scope covers the entire origin."""
     response = send_from_directory("static", "sw.js")
     response.headers["Service-Worker-Allowed"] = "/"
     response.headers["Cache-Control"] = "no-cache"
@@ -170,6 +216,7 @@ def classify():
         result["longitude"] = lon
 
         guardar_historial(tmp_path, result, mode, lat=lat, lon=lon)
+        _save_to_supabase(result, mode, lat, lon)
 
         return jsonify(result)
 
@@ -195,12 +242,27 @@ def history():
         return jsonify({"error": "Could not retrieve history."}), 500
 
 
-@app.route("/map")
-def map_view():
-    """Renderiza un mapa Leaflet con marcadores de clasificaciones (lee de SQLite)."""
+@app.route("/api/classifications")
+@require_auth
+def api_classifications():
+    """Devuelve clasificaciones desde Supabase (o SQLite como fallback)."""
+    if _supabase:
+        try:
+            resp = (
+                _supabase.table("classifications")
+                .select("*")
+                .order("id", desc=True)
+                .execute()
+            )
+            return jsonify(resp.data)
+        except Exception as e:
+            logger.error("api_classifications supabase error: %s", e)
+            return jsonify({"error": "Could not retrieve classifications."}), 500
+
+    # Fallback: SQLite / PostgreSQL local
     try:
         rows = obtener_historial_con_gps()
-        markers = [
+        data = [
             {
                 "latitude": row["latitude"],
                 "longitude": row["longitude"],
@@ -213,10 +275,17 @@ def map_view():
             }
             for row in rows
         ]
-        return render_template("map.html", markers=markers)
+        return jsonify(data)
     except Exception as e:
-        logger.error("map error: %s", e)
-        return render_template("map.html", markers=[])
+        logger.error("api_classifications fallback error: %s", e)
+        return jsonify([])
+
+
+@app.route("/map")
+@require_auth
+def map_view():
+    """Renderiza el mapa Leaflet; los marcadores se cargan vía /api/classifications."""
+    return render_template("map.html")
 
 
 @app.route("/health")
