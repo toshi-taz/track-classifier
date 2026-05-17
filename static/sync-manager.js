@@ -53,9 +53,10 @@ async function syncPending() {
       if (record.lon != null) body.longitude = record.lon;
 
       const res = await fetch('/classify', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(body),
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
+        body:        JSON.stringify(body),
       });
 
       if (res.ok) {

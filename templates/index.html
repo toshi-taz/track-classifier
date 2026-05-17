@@ -1355,6 +1355,7 @@
 
       const res  = await fetch('/classify', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
@@ -1540,7 +1541,7 @@
   /* ── History ────────────────────────────────────────────── */
   async function loadHistory() {
     try {
-      const res  = await fetch('/history');
+      const res  = await fetch('/history', { credentials: 'include' });
       const rows = await res.json();
       renderHistory(Array.isArray(rows) ? rows : []);
     } catch (e) {
