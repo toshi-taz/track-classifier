@@ -440,6 +440,30 @@
       transform: none;
     }
 
+    /* Camera & GPS utility buttons */
+    #camera-btn, #gps-btn {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      text-align: center;
+      border: 1px solid rgba(124,186,110,0.15);
+      background: rgba(12,20,12,0.5);
+      color: var(--text-sec);
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #camera-btn { margin-top: 8px; }
+    #gps-btn    { margin-top: 10px; }
+    #camera-btn:hover, #gps-btn:hover:not(:disabled) {
+      border-color: rgba(124,186,110,0.35);
+      color: var(--text);
+    }
+    #gps-btn:disabled { opacity: 0.6; cursor: default; }
+
     /* Loading */
     #loading-wrap {
       display: none;
@@ -1004,6 +1028,8 @@
         <p class="drop-text-main">Arrastra una imagen</p>
         <p class="drop-text-sub">JPG · PNG · WEBP · Máx 10 MB</p>
       </div>
+      <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" />
+      <button id="camera-btn">📷 Tomar foto</button>
     </div>
 
     <!-- Preview -->
@@ -1038,6 +1064,7 @@
             onfocus="this.style.borderColor='rgba(124,186,110,0.4)'" onblur="this.style.borderColor='rgba(124,186,110,0.12)'" />
         </div>
       </div>
+      <button id="gps-btn">📍 Usar mi ubicación</button>
       <!-- GPS status (shown after analysis) -->
       <div id="gps-status" style="display:none;margin-top:8px;padding:7px 12px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;"></div>
     </div>
@@ -1213,6 +1240,8 @@
   /* ── DOM refs ───────────────────────────────────────────── */
   const dropZone     = document.getElementById('drop-zone');
   const fileInput    = document.getElementById('file-input');
+  const cameraInput  = document.getElementById('camera-input');
+  const cameraBtn    = document.getElementById('camera-btn');
   const previewWrap  = document.getElementById('preview-wrap');
   const previewImg   = document.getElementById('preview-img');
   const clearBtn     = document.getElementById('clear-btn');
@@ -1228,6 +1257,7 @@
   const gpsLat       = document.getElementById('gps-lat');
   const gpsLon       = document.getElementById('gps-lon');
   const gpsStatus    = document.getElementById('gps-status');
+  const gpsBtn       = document.getElementById('gps-btn');
   const infoBox      = document.getElementById('info-box');
 
   /* ── File handling ──────────────────────────────────────── */
@@ -1249,6 +1279,7 @@
     previewWrap.style.display = 'none';
     dropZone.parentElement.style.display = 'block';
     fileInput.value = '';
+    cameraInput.value = '';
     analyzeBtn.disabled = true;
     gpsStatus.style.display = 'none';
   }
@@ -1263,6 +1294,34 @@
   dropZone.addEventListener('drop', ev => handleFile(ev.dataTransfer.files[0]));
   fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
   clearBtn.addEventListener('click', clearImage);
+
+  /* ── Camera capture ─────────────────────────────────────── */
+  cameraBtn.addEventListener('click', () => cameraInput.click());
+  cameraInput.addEventListener('change', () => handleFile(cameraInput.files[0]));
+
+  /* ── GPS auto-fill ──────────────────────────────────────── */
+  gpsBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      gpsBtn.textContent = 'GPS no disponible en este dispositivo';
+      return;
+    }
+    gpsBtn.textContent = 'Obteniendo ubicación...';
+    gpsBtn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        gpsLat.value = pos.coords.latitude.toFixed(6);
+        gpsLon.value = pos.coords.longitude.toFixed(6);
+        gpsBtn.textContent = '📍 Usar mi ubicación';
+        gpsBtn.disabled = false;
+      },
+      () => {
+        gpsBtn.textContent = 'No se pudo obtener ubicación';
+        gpsBtn.disabled = false;
+        setTimeout(() => { gpsBtn.textContent = '📍 Usar mi ubicación'; }, 3000);
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  });
 
   /* ── Mode ───────────────────────────────────────────────── */
   function setMode(mode, btn) {
